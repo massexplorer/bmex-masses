@@ -1,5 +1,5 @@
 # run: conda env create --file environment.yml
-name: bmex
+name: bmex-masses
 dependencies:
 - python>=3.9
 - anaconda
