@@ -1,22 +1,24 @@
 import time
+import numpy as np
+import math
+from datetime import date, datetime
 
 import dash
-from dash import dcc
-from dash import html
-import numpy as np
+from dash import dcc, MATCH, ALL, html
 from dash.dependencies import Input, Output, State
 import json
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
-
+from dash_breakpoints import WindowBreakpoints
 
 import utils.dash_reusable_components as drc
 import utils.figures as figs
 import utils.bmex as bmex
 from utils.bmex_views import *
-import utils.views_class as views
 import utils.gpe as gpe
 import utils.rbm as rbm
+from utils.views_class import View
+from utils.sidebar_class import Sidebar
 
 import plotly.express as px
 import plotly.graph_objects as go
@@ -26,35 +28,16 @@ import random as rand
 import h5py
 import base64, io
 import re
-import base64
+import zipfile
+import plotly.io as pio
+import sqlite3 as sl
+import string
 
-TAB_STYLE = {
-    'width': '72px',
-    'border': 'none',
-    #'boxShadow': 'inset 0px -1px 0px 0px lightgrey',
-    'background': '#a5b1cd',
-    'paddingTop': 0,
-    'paddingBottom': 0,
-    'height': '60px',
-    'font-size': 32,
-    'color': '#282b38',
-    'borderTop': '3px  #ffffff solid',
-}
 
-SELECTED_STYLE = {
-    'width': '72px',
-    'boxShadow': 'none',
-    'borderLeft': '3px #ffffff solid',
-    'borderRight': '3px #282b38 solid',
-    'borderTop': '3px #ffffff solid',
-    'borderBottom': '3px #282b38 solid',
-    'background': '#a5b1cd',
-    'paddingTop': 0,
-    'paddingBottom': 0,
-    'height': '60px',
-    'font-size': 32,
-    'color': '#282b38'
-}
+default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['EXP'], 
+           "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
+           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
+           "uncertainty": [False], "estimated": [False]}
 
 app = dash.Dash(
     __name__,
@@ -72,48 +55,50 @@ server = app.server
 app.layout = html.Div(
     children=[
         dcc.Location(id='url', refresh=False),
-        # .container class is fixed, .container.scalable is scalable
+        WindowBreakpoints(
+            id="breakpoints",
+            widthBreakpointThresholdsPx=[800, 1700],
+            widthBreakpointNames=["sm", "md", "lg"],
+        ),
         html.Div(
             className="banner",
             children=[
-                # Change App Name here
-                html.Div(
-                    className="container scalable",
+                html.A(
+                    id="logo",
                     children=[
-                        # Change App Name here
-                        html.H2(
-                            id="banner-title",
-                            children=[
-                                html.A(
-                            id="banner-logo",
-                            children=[
-                                html.Img(src=app.get_asset_url("BMEX-logo-3.png"))
-                            ],
-                            href="https://bmex.dev",
-                        )
-                            ],
-                        ),
+                        html.Img(src=app.get_asset_url("BMEX-logo-beta.png"), id="logo-img")
                     ],
+                    href="https://bmex.dev",
                 ),
-            ],
+                html.A(
+                    id="issues",
+                    children=[
+                        html.Img(src=app.get_asset_url("Submit-Issues.png"), id="issues-img")
+                    ],
+                    href="https://github.com/massexplorer/bmex-web/issues/new",             
+                )   
+            ]
         ),
         html.Div(id='page-content'),
         dcc.Store(id='intermediate-value'),
-        dcc.Store(id='nextgraphid', data=2),
-        dcc.Store(id='viewsmemory', storage_type='memory',
-        data=json.dumps([{"graphstyle": 'landscape', "quantity": 'BE', "dataset": 'EXP', "colorbar": 'linear', "wigner": 0, "id": 1, 
-        "ZRange": {"zmin": None, "zmax": None, "protons": 40}, "NRange": {"nmin": None, "nmax": None, "neutrons": 40}}]),
-        ),
+        dcc.Store(id='intermediate-colorbar-range'),
+        html.P(id='placeholder', hidden=True),
+        dcc.Store(id='url-store'),
+        dcc.Store(id='viewsmemory', storage_type='session', data=json.dumps([default]),),
         dcc.Store(id='triggerGraph', data=json.dumps("update")),
+        dcc.ConfirmDialog(id='confirm', message='Warning! Are you sure you want to delete this view?'),
+        dcc.ConfirmDialog(id='confirm-reset', message='Warning! Are you sure you want to reset this page?'),
+        dcc.Download(id="download-figs"),
     ]
 )
 
 @app.callback(
+    Output('url-store','data'),
     Output('page-content','children'),
     [Input('url','pathname')]
     )
 def display_page(pathname):
-    if(pathname == "/masses"):
+    if(pathname[:7] == "/masses"):
         out = masses_view()
     elif(pathname == "/gpe"):
         out = gpe_view()
@@ -126,1108 +111,592 @@ def display_page(pathname):
             id="body",
             className="container scalable",
             children=[html.P("How did you get here? Click the banner to make it back to safety!")])
-    return out
+    return pathname, out
 
 @app.callback(
-    [
-        Output(component_id='dropdown-select-quantity', component_property='options'),
-        #Output(component_id='dropdown-select-quantity', component_property='value'),
-        Output(component_id='protons-card', component_property='style'),
-        Output(component_id='neutrons-card', component_property='style'),
-        # Output(component_id='zmin-card', component_property='style'),
-        # Output(component_id='zmax-card', component_property='style'),
-        # Output(component_id='nmin-card', component_property='style'),
-        # Output(component_id='nmax-card', component_property='style'),
-        Output(component_id='colorbar-card', component_property='style'),
-        Output(component_id='Wigner-card', component_property='style'),
-    ],
-    [
-        Input(component_id='dropdown-iso-chain', component_property='value'),
-        Input('url','pathname'),
-    ]
+    Output("clipboard", "content"),
+    Input("viewsmemory", "data")
 )
-def quantity_options(is_chain,url):
-    show = {'display': 'block'}
-    hide = {'display': 'none'}
-    if url == "/masses":
-        if is_chain == 'single':
-            return [[
-                # Options for Dropdown
-                {"label": "All", "value": "All"},
-                {"label": "Binding Energy", "value": "BE"},
-                {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"All",
-            # Proton Box Visibility
-            show,
-            # Neutron Box Visibility
-            show,
-            # # Zmin Visibility
-            # hide,
-            # # Zmax Visibility
-            # hide,
-            # # Nmin Visibility
-            # hide,
-            # # Nmax Visibility
-            # hide,
-            # Colorbar Visibility
-            hide,
-            # Wigner Visibility
-            hide,
-            ]
-        elif is_chain == 'isotopic':
-            return [[
-                    {"label": "Binding Energy", "value": "BE"},
-                    {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                    {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                    {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                    {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                    {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                    {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                    {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                    {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                    {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                    {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                    {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                    {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                    {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"BE",
-            # Proton Box Visibility
-            show,
-            # Neutron Box Visibility
-            hide,
-            # # Zmin Visibility
-            # hide,
-            # # Zmax Visibility
-            # hide,
-            # # Nmin Visibility
-            # show,
-            # # Nmax Visibility
-            # show,
-            # Colorbar Visibility
-            hide,
-            # Wigner Visibility
-            hide,
-            ]
-        elif is_chain == 'isotonic':
-            return [[
-                    {"label": "Binding Energy", "value": "BE"},
-                    {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                    {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                    {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                    {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                    {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                    {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                    {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                    {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                    {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                    {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                    {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                    {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                    {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"BE",
-            # Proton Box Visibility
-            hide,
-            # Neutron Box Visibility
-            show,
-            # # Zmin Visibility
-            # show,
-            # # Zmax Visibility
-            # show,
-            # # Nmin Visibility
-            # hide,
-            # # Nmax Visibility
-            # hide,
-            # Colorbar Visibility
-            hide,
-            # Wigner Visibility
-            hide,           
-            ]
-        elif is_chain == 'landscape':
-            return [[
-                    {"label": "Binding Energy", "value": "BE"},
-                    {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                    {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                    {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                    {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                    {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                    {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                    {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                    {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                    {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                    {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                    {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                    {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                    {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-                    {"label": "Quad Def Beta2", "value": "QDB2t",},
-            ],
-            # Default Value
-            #"BE",
-            # Proton Box Visibility
-            hide,
-            # Neutron Box Visibility
-            hide,
-            # # Zmin Visibility
-            # hide,
-            # # Zmax Visibility
-            # hide,
-            # # Nmin Visibility
-            # hide,
-            # # Nmax Visibility
-            # hide,
-            # Colorbar Visibility
-            show,
-            # Wigner Visibility
-            show,
-            ]            
-    elif url == "/gpe":
-        if is_chain == 'single':
-            return [[
-                # Options for Dropdown
-                #{"label": "All", "value": "All"},
-                #{"label": "Binding Energy", "value": "BE"},
-                #{"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                #{"label": "One Proton Separation Energy", "value": "OnePSE",},
-                {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                # {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                # {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                # {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                # {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                # {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                # {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                # {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                # {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                # {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                # {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"TwoNSE",
-            # Proton Box Visibility
-            show,
-            # Neutron Box Visibility
-            show,
-            # Zmin Visibility
-            hide,
-            # Zmax Visibility
-            hide,
-            # Nmin Visibility
-            hide,
-            # Nmax Visibility
-            hide,
-            ]
-        elif is_chain == 'isotopic':
-            return [[
-                    # {"label": "Binding Energy", "value": "BE"},
-                    # {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                    # {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                    {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                    # {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                    # {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                    # {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                    # {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                    # {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                    # {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                    # {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                    # {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                    # {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                    # {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"TwoNSE",
-            # Proton Box Visibility
-            show,
-            # Neutron Box Visibility
-            hide,
-            # Zmin Visibility
-            hide,
-            # Zmax Visibility
-            hide,
-            # Nmin Visibility
-            hide,
-            # Nmax Visibility
-            hide,
-            ]
-        elif is_chain == 'isotonic':
-            return [[
-                    # {"label": "Binding Energy", "value": "BE"},
-                    # {"label": "One Neutron Separation Energy", "value": "OneNSE",},
-                    # {"label": "One Proton Separation Energy", "value": "OnePSE",},
-                    {"label": "Two Neutron Separation Energy", "value": "TwoNSE",},
-                    # {"label": "Two Proton Separation Energy", "value": "TwoPSE",},
-                    # {"label": "Alpha Separation Energy", "value": "AlphaSE",},
-                    # {"label": "Two Proton Shell Gap", "value": "TwoNSGap",},
-                    # {"label": "Two Neutron Shell Gap", "value": "TwoPSGap",},
-                    # {"label": "Double Mass Difference", "value": "DoubleMDiff",},
-                    # {"label": "Neutron 3-Point Odd-Even Binding Energy Difference", "value": "N3PointOED",},
-                    # {"label": "Proton 3-Point Odd-Even Binding Energy Difference", "value": "P3PointOED",},
-                    # {"label": "Single-Neutron Energy Splitting", "value": "SNESplitting",},
-                    # {"label": "Single-Proton Energy Splitting", "value": "SPESplitting",},
-                    # {"label": "Wigner Energy Coefficient", "value": "WignerEC",},
-            ],
-            # Default Value
-            #"TwoNSE",
-            # Proton Box Visibility
-            hide,
-            # Neutron Box Visibility
-            show,
-            # Zmin Visibility
-            show,
-            # Zmax Visibility
-            show,
-            # Nmin Visibility
-            hide,
-            # Nmax Visibility
-            hide,
-            ]
+def link_update(views):   
+    # hash = ''.join(rand.choices(string.ascii_letters, k=6))
+    # return "https://beta.bmex.dev/masses/"+hash
+    cur_views = json.loads(views)
+    return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode( json.dumps( [list(cur_views[i].values()) for i in range(len(cur_views))] ).encode()).decode()
+    # return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode(views.encode()).decode()
+
+# @app.callback(
+#     Output("placeholder", "hidden"),
+#     State("clipboard", "content"),
+#     State("viewsmemory", "data"),
+#     Input("clipboard", "n_clicks"),  
+#     prevent_initial_call=True, 
+# )
+# def hash_store(link, views, clicks):
+#     try:
+#         hash = link.split("masses/")[1]
+#     except:
+#         raise PreventUpdate
+#     con = sl.connect('view_hashes.db')
+#     with con:
+#         try:
+#             con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+#         except:
+#             con.execute("""
+#                 CREATE TABLE hashes (
+#                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+#                     hash TEXT,
+#                     info TEXT
+#                 );
+#             """)
+#             con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+
+
+@app.callback(
+    Output('confirm', 'displayed'),
+    Input({"type": 'delete-button', "index": ALL}, "n_clicks"),
+    State("viewsmemory", "data")
+)
+def display_confirm(delete, json_cur_views):
+    try:
+        dash.callback_context.triggered_id['type']
+    except:
+        raise PreventUpdate
+    if 'delete-button' == dash.callback_context.triggered_id['type']:
+        try:
+            if delete[0] > 0:
+                l = len(json.loads(json_cur_views))
+                if l < 2:
+                    pass
+                else:
+                    return True
+        except:
+            pass
+
+@app.callback(
+    Output('confirm-reset', 'displayed'),
+    Input('reset-button', "n_clicks"),
+)
+def display_reset_confirm(reset):
+    try:
+        if reset > 0:
+            return True
+    except:
+        pass
+
+
+@app.callback(
+    Output("download-figs", "data"),
+    Input("download-button", "n_clicks"),
+    State({'type': 'graph','index': ALL}, "figure"),
+    State("viewsmemory", "data"),
+    prevent_initial_call=True,
+)
+def download(n_clicks, figures, json_cur_views):
+    try:
+        n_clicks>0
+    except:
+        raise PreventUpdate
+    cur_views = json.loads(json_cur_views)
+    zip_file_name = "BMEX-"+str(date.today().strftime("%b-%d-%Y"))+"_"+str(datetime.now().strftime("%H-%M-%S"))+".zip"
+    def write_zip(bytes_io):
+        with zipfile.ZipFile(bytes_io, mode="w") as zf:
+            # garbage graph to prevent print out
+            fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+            fig.write_image("trash_graph.pdf", format="pdf")
+            time.sleep(.5)
+            for i in range(len(figures)):
+                filename = "Fig_"+str(i+1)+".pdf"
+                buf = io.BytesIO()
+                fig = go.Figure(figures[i])
+                pio.full_figure_for_development(fig, warn=False)
+                if cur_views[i]['colorbar'] == 'monochrome':
+                    fig.update_traces(colorscale=[[0, 'rgb(163, 77, 57)'], [1, 'rgb(255, 200, 170)']])
+                if cur_views[i]['colorbar'] == 'diverging':
+                    fig.update_traces(colorscale=[[0, 'rgb(0, 0, 255)'], [.5, 'rgb(0, 0, 0)'], [1, 'rgb(255, 0, 0)']])
+                    
+                fig.update_layout(
+                    font={"color": "#000000"}, title=None,
+                    xaxis=dict(linecolor='black', showgrid=False,  minor=dict(showgrid=False)),
+                    yaxis=dict(linecolor='black', showgrid=False, minor=dict(showgrid=False)),
+                    plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
+                
+                fig.update_traces(dict(marker=dict(color='#000000')), dict(marker=dict(color='#ffffff')))
+
+                fig.write_image(buf, format='pdf', engine="kaleido")
+                zf.writestr(filename, buf.getvalue())
+    return dcc.send_bytes(write_zip, zip_file_name)
+
 
 @app.callback(
     [
         Output("viewsmemory", "data"),
-        Output("tabs", "children"),
+        Output("main-tabs", "children"),
         Output("triggerGraph", "data"),
-        Output("tabs", "value"),
-        Output("nextgraphid", "data"),
-        Output("dropdown-iso-chain", "value"),
-        Output("dropdown-select-quantity", "value"),
-        Output("dropdown-select-dataset", "value"),
-        Output("protons", "value"),
-        Output("neutrons", "value"),
-        Output("zmin", "value"),
-        Output("zmax", "value"),
-        Output("nmin", "value"),
-        Output("nmax", "value"),
+        Output("main-tabs", "value"),
+        Output("tabs_output", "children"),
+        Output("link-view-checklist", "options"),
+        Output("link-view-checklist", "value"),
     ],
     [
         State("viewsmemory", "data"),
-        State("tabs", "children"),
+        State("main-tabs", "children"),
+        State("tabs_output", "children"),
+        State({'type': 'graph','index': ALL}, "figure"),
+        State('link-view-checklist', 'value'),
+        #link
+        Input("link-colorbar-button", "n_clicks"),
+        #rescale
+        Input({'type': 'rescale-colorbar-button', 'index': ALL}, 'n_clicks'),
+        #url
+        Input("url-store", "data"),
         #tabs_output
-        Input("tabs", "value"),
-        #new_plot
-        Input("new-button","n_clicks"),
-        State("nextgraphid", "data"),
+        Input("main-tabs", "value"),
+        #relayout_data
+        Input({'type': 'graph','index': ALL}, "relayoutData"),
+        #new_series
+        Input({"type": 'series-button', "index": ALL}, "n_clicks"),
+        #series_tabs
+        Input({'type': 'series_tabs','index': ALL}, "value"),
+        #delete_series
+        Input({'type': 'delete-series-button','index': ALL}, "n_clicks"),
         #delete_plot
-        Input("delete-button","n_clicks"),
+        Input('confirm', 'submit_n_clicks'),
         #reset_page
-        Input("reset-button","n_clicks"),
+        Input('confirm-reset', "submit_n_clicks"),
+        #uncertainty-checklist
+        Input({'type': 'uncertainty-checklist', 'index': ALL}, 'value'),
         #dropdowns
-        Input("dropdown-iso-chain","value"),
-        Input("dropdown-select-quantity", "value"),
-        Input("dropdown-select-dataset", "value"),
-        Input("zmin", "value"),
-        Input("zmax", "value"),
-        Input("nmin", "value"),
-        Input("nmax", "value"),
-        Input("protons", "value"),
-        Input("neutrons", "value"),
-        Input("dropdown-colorbar","value"),
-        Input("radio-wigner","value"),
-    ]
+        Input({'type': 'dropdown-dimension', 'index': ALL}, 'value'),
+        Input({'type': 'dropdown-1D', 'index': ALL}, 'value'),
+        Input({'type': 'dropdown-quantity', 'index': ALL}, 'value'),
+        Input({'type': 'dropdown-dataset', 'index': ALL}, 'value'),
+        Input({'type': 'input-protons', 'index': ALL}, 'value'),
+        Input({'type': 'input-neutrons', 'index': ALL}, 'value'),
+        Input({'type': 'input-nucleons', 'index': ALL}, 'value'),
+        Input({'type': 'dropdown-colorbar', 'index': ALL}, 'value'),
+        Input({'type': 'radio-wigner', 'index': ALL}, 'value'),
+    ],
 )
 def main_update(
-    json_cur_views, cur_tabs, tab_n, new_button, graphid, 
-    delete_button, reset_button, graphstyle, quantity, dataset, zmin, 
-    zmax, nmin, nmax, protons, neutrons, colorbar, wigner):
+    json_cur_views, cur_tabs, cur_sidebar, figures, links, link_colorbar, rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
+    reset_button, uncer, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
+
     cur_views = json.loads(json_cur_views)
+    new_views = cur_views.copy()
+
     n = int(tab_n[3])
-    #print(base64.urlsafe_b64encode(json_cur_views.encode()).decode())
-    print(cur_views[n-1])
+    if len(series_tab) == 0:
+        series_n = 1
+    else:
+        series_n = int(series_tab[0][3])
 
-    #tabs_change
-    if "tabs" == dash.callback_context.triggered_id:
-        print('TABS')
-        return  [
-            json_cur_views, 
-            cur_tabs,
-            json.dumps("dontupdate"), #graph
-            tab_n, 
-            graphid,
-            cur_views[n-1]['graphstyle'],
-            cur_views[n-1]['quantity'],
-            cur_views[n-1]['dataset'],
-            cur_views[n-1]['ZRange']['protons'],
-            cur_views[n-1]['NRange']['neutrons'],
-            cur_views[n-1]['ZRange']['zmin'],
-            cur_views[n-1]['ZRange']['zmax'],
-            cur_views[n-1]['NRange']['nmin'],
-            cur_views[n-1]['NRange']['nmax'],
-        ]
-
-    #new_plot
-    if "new-button" == dash.callback_context.triggered_id:
-        if len(cur_tabs)>3 or type(new_button) != type(1):
-            raise PreventUpdate
-        new_views = cur_views
-        default = {"graphstyle": 'landscape', "quantity": 'BE', "dataset": 'EXP', "colorbar": 'linear', "wigner": 0, "id": graphid, 
-        "ZRange": {"zmin": None, "zmax": None, "protons": 40}, "NRange": {"nmin": None, "nmax": None, "neutrons": 40}}
-        new_views.append(default)
-        new_tabs = cur_tabs
-        new_tabs.append(dcc.Tab(label=str(len(cur_tabs)+1), value='tab'+str(len(cur_tabs)+1), style=TAB_STYLE,
-            selected_style=SELECTED_STYLE))
-        l = len(new_tabs)
-        if graphid == 4:
-            graphid = 1
+    #url
+    if "url-store" == dash.callback_context.triggered_id:
+        if(len(url)>10):
+            loaded_list = json.loads(base64.urlsafe_b64decode(url[8:].encode()).decode())
+            loaded_views = [{} for i in range(len(loaded_list))]
+            for j in range(len(loaded_list)):
+                for key, k in zip(default, range(len(default))):
+                    loaded_views[j][key] = loaded_list[j][k]
+            new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
+            if len(new_tabs)<4:
+                new_tabs.append(dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected'))
+            return  [
+                json.dumps(loaded_views), 
+                new_tabs,
+                json.dumps('update'),
+                tab_n,
+                Sidebar(loaded_views[n-1], 1, len(new_tabs)).show(),
+                ['1'],
+                []
+            ]
+        # if(len(url)>10):
+        #     con = sl.connect('view_hashes.db')
+        #     hash = url[8:]
+        #     with con:
+        #         loaded_views = json.loads(list(con.execute("SELECT info FROM hashes WHERE hash == (?)", (hash,)))[0][0])
+        #     new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
+        #     return  [
+        #         json.dumps(loaded_views), 
+        #         new_tabs,
+        #         json.dumps('update'),
+        #         tab_n,
+        #         Sidebar(loaded_views[n-1]).show(), 
+        #     ]
         else:
-            graphid += 1
+            new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
+            if len(new_tabs)<4:
+                new_tabs.append(dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected'))
+            checklist = [str(i+1) for i in range(len(cur_views))]
+            return  [
+                json_cur_views, 
+                new_tabs,
+                json.dumps("update"),
+                tab_n,
+                Sidebar(cur_views[n-1], 1, len(new_tabs)).show(),
+                checklist,
+                []
+            ]
+
+    #main-tabs_change
+    if "main-tabs" == dash.callback_context.triggered_id:
+        new_tabs = cur_tabs.copy()
+        update = "dontupdate"
+        # add plot
+        if n == 0:
+            tab_n = "tab"+str(len(cur_tabs))
+            update = "update"
+            new_views.append(default)
+            new_tabs.insert(len(cur_tabs)-1, dcc.Tab(label=str(len(cur_tabs)), value='tab'+str(len(cur_tabs)), className='custom-tab', selected_className='custom-tab--selected'))
+            if len(new_tabs)>4:
+                new_tabs.pop()
+            checklist = [str(i+1) for i in range(len(cur_views)+1)]
+        else:
+            checklist = [str(i+1) for i in range(len(cur_views))]
+            
         return [
             json.dumps(new_views),
             new_tabs,
-            json.dumps("update"), #graph
-            "tab"+str(l),
-            graphid,
-            new_views[-1]['graphstyle'],
-            new_views[-1]['quantity'],
-            new_views[-1]['dataset'],
-            new_views[-1]['ZRange']['protons'],
-            new_views[-1]['NRange']['neutrons'],
-            new_views[-1]['ZRange']['zmin'],
-            new_views[-1]['ZRange']['zmax'],
-            new_views[-1]['NRange']['nmin'],
-            new_views[-1]['NRange']['nmax'],
+            json.dumps(update), #graph
+            tab_n,
+            Sidebar(new_views[n-1], 1, len(new_tabs)).show(),
+            checklist,
+            links
         ]
- 
+
     #delete_plot
-    if "delete-button" == dash.callback_context.triggered_id:
-        if  type(delete_button)==type(1) and len(cur_views)>1:
-            new_views = cur_views
+    if 'confirm' == dash.callback_context.triggered_id:
+        n_views = len(cur_views)
+        if  n_views > 1:
             new_views.pop(n-1)
             new_tabs = cur_tabs
-            new_tabs.pop(-1)
+            if n_views == 4:
+                new_tabs.pop(-1)
+                new_tabs.append(dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected'))
+            else:
+                new_tabs.pop(-2)
+            checklist = [str(i+1) for i in range(len(cur_views)-1)]
             return [
                 json.dumps(new_views), 
                 new_tabs,
                 json.dumps("update"), #graph
                 "tab"+str(len(new_views)),
-                graphid,
-                new_views[-1]['graphstyle'],
-                new_views[-1]['quantity'],
-                new_views[-1]['dataset'],
-                new_views[-1]['ZRange']['protons'],
-                new_views[-1]['NRange']['neutrons'],
-                new_views[-1]['ZRange']['zmin'],
-                new_views[-1]['ZRange']['zmax'],
-                new_views[-1]['NRange']['nmin'],
-                new_views[-1]['NRange']['nmax'],
+                Sidebar(new_views[-1], 1, len(new_tabs)).show(),
+                checklist,
+                links
+            ]
+        else:
+            raise PreventUpdate
+
+    #reset_page
+    if "confirm-reset" == dash.callback_context.triggered_id:
+        return [
+            json.dumps([default]), 
+            [dcc.Tab(label="1", value='tab1', className='custom-tab', selected_className='custom-tab--selected'), 
+            dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected')],
+            json.dumps("update"),
+            'tab1',
+            Sidebar().show(),
+            ['1'],
+            []
+        ]
+
+    # A function that inputs an array of different data types and only keeps the floats
+    def float_array(array):
+        return np.array( [array[i] for i in range(len(array)) if type(array[i])==type(1.0)] )
+    
+    # Match Colorbars
+    if "link-colorbar-button" == dash.callback_context.triggered_id:
+        mins = np.array( [figures[i]['data'][0]['zmin'] for i in range(len(figures)) if cur_views[i]['dimension']=='landscape'] )
+        maxes = np.array( [figures[i]['data'][0]['zmax'] for i in range(len(figures)) if cur_views[i]['dimension']=='landscape'] )
+        try:
+            minz, maxz = float(min(mins)), float(max(maxes))
+        except:
+            raise PreventUpdate
+        for i in range(len(new_views)):
+            new_views[i]['colorbar_range'] = [minz, maxz]
+        checklist = [str(i+1) for i in range(len(cur_views))]
+        return [
+            json.dumps(new_views),
+            cur_tabs,
+            json.dumps("update"), #graph
+            tab_n,
+            Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links
+        ]
+
+    try:
+        dash.callback_context.triggered_id['type']
+    except:
+        raise PreventUpdate
+    
+
+    # Rescale Individual Plot Colorbar
+    if "rescale-colorbar-button" == dash.callback_context.triggered_id['type']:
+        if type(rescale_colorbar[0])==type(1):
+            x_range, y_range = cur_views[n-1]['range']['x'].copy(), cur_views[n-1]['range']['y'].copy()
+            if x_range[0] == None:
+                x_range[0] = -999
+            if x_range[1] == None:
+                x_range[1] = 999
+            if y_range[0] == None:
+                y_range[0] = -999
+            if y_range[1] == None:
+                y_range[1] = 999
+            xmin, xmax = math.floor(x_range[0])+math.floor(x_range[0])%2, math.ceil(x_range[1])-math.ceil(x_range[1])%2
+            ymin, ymax = math.floor(y_range[0])+math.floor(y_range[0])%2, math.ceil(y_range[1])-math.ceil(y_range[1])%2
+            x, y = np.array(figures[n-1]['data'][0]['x']), np.array(figures[n-1]['data'][0]['y'])
+            xmin_i, xmax_i = int(np.where(x>=xmin)[0][0]), int(np.where(x<=xmax)[0][-1])+1
+            ymin_i, ymax_i = int(np.where(y>=ymin)[0][0]), int(np.where(y<=ymax)[0][-1])+1
+            values = float_array(np.array(figures[n-1]['data'][0]['z'])[ymin_i:ymax_i, xmin_i:xmax_i].flatten())
+            val_min, val_max = np.round(np.min(values),3), np.round(np.max(values),3)
+            new_views[n-1]['colorbar_range'] = [val_min, val_max]
+            checklist = [str(i+1) for i in range(len(cur_views))]
+            return [
+                json.dumps(new_views),
+                cur_tabs,
+                json.dumps("update"), #graph
+                tab_n,
+                Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+                checklist,
+                links
+            ]
+        raise PreventUpdate
+    
+    # Relayout Data Change
+    if "graph" == dash.callback_context.triggered_id['type']:
+       
+        # Store Relayout Change
+        trigger_index = dash.callback_context.triggered_id['index']
+        new_data = relayout_data[trigger_index-1]
+        if new_data == None:
+            raise PreventUpdate
+        auto = False
+        if new_data == {'dragmode': 'pan'} or new_data == {'dragmode': 'zoom'} or 'autosize' in new_data:
+            raise PreventUpdate
+        if 'xaxis.autorange' in new_data:
+            auto = True
+            new_views[trigger_index-1]['range']['x'] = [None, None]
+            new_views[trigger_index-1]['range']['y'] = [None, None]
+        else:
+            try:
+                new_xrange = [float(np.round(new_data['xaxis.range[0]'],3)), float(np.round(new_data['xaxis.range[1]'],3))]
+                new_views[trigger_index-1]['range']['x'] = new_xrange
+            except:
+                new_xrange = cur_views[trigger_index-1]['range']['x']
+            try:
+                new_yrange = [float(np.round(new_data['yaxis.range[0]'],3)), float(np.round(new_data['yaxis.range[1]'],3))]
+                new_views[trigger_index-1]['range']['y'] = new_yrange
+            except:
+                new_yrange = cur_views[trigger_index-1]['range']['y']
+            
+        #Link Views
+        if links != None and str(trigger_index) in links:
+            trig_dim = cur_views[trigger_index-1]['dimension']
+            if trig_dim == '1D':
+                trig_dim = cur_views[trigger_index-1]['chain']
+            for link in links:
+                if int(link) != trigger_index:
+                    if auto:
+                        new_views[int(link)-1]['range']['x'] = [None, None]
+                        new_views[int(link)-1]['range']['y'] = [None, None]
+                    else:
+                        link_dim = cur_views[int(link)-1]['dimension']
+                        if link_dim == '1D':
+                            link_dim = cur_views[int(link)-1]['chain']
+                        if (trig_dim[:3]=='iso' and link_dim=='landscape') or (trig_dim=='landscape' and link_dim[:3]=='iso'): # One of each type
+                            chain = trig_dim
+                            if chain=='landscape':
+                                chain = link_dim
+                            if chain == 'isotopic':
+                                new_views[int(link)-1]['range']['x'] = new_xrange
+                            else:
+                                if trig_dim[:3]=='iso':
+                                    new_views[int(link)-1]['range']['y'] = new_xrange
+                                else:
+                                    new_views[int(link)-1]['range']['x'] = new_yrange
+                        elif (trig_dim!='isotopic' or link_dim!='isotopic') and ((trig_dim=='isotopic' and link_dim[:3]=='iso') or (trig_dim[:3]=='iso' and link_dim=='isotopic')): # 1Ds w/ only one isotopic
+                            pass
+                        elif trig_dim[:3]=='iso' and link_dim[:3]=='iso': # Both isotopic or both isotonic/baric
+                            new_views[int(link)-1]['range']['x'] = new_xrange
+                        else:
+                            new_views[int(link)-1]['range']['x'] = new_xrange
+                            new_views[int(link)-1]['range']['y'] = new_yrange
+
+        # def round_one_sigfig(x):
+        #     return round(x, -int(math.floor(math.log10(abs(x)))))
+        # Rescales tick marks
+        # for i in range(len(figures)):
+        #     try:
+        #         if list(relayout_data[i].keys())[0]=='dragmode':
+        #             raise PreventUpdate
+        #     except:
+        #         pass
+        #     try:
+        #         xdtick = math.ceil(round_one_sigfig((2/3)*(relayout_data[i]['xaxis.range[1]']-relayout_data[i]['xaxis.range[0]'])/4))
+        #         ydtick = math.ceil(round_one_sigfig((relayout_data[i]['yaxis.range[1]']-relayout_data[i]['yaxis.range[0]'])/4))
+        #         new_figures[i]['layout']['xaxis']['dtick'] = xdtick
+        #         new_figures[i]['layout']['yaxis']['dtick'] = ydtick
+        #         new_figures[i]['layout']['xaxis']['minor']['dtick'] = xdtick/5
+        #         new_figures[i]['layout']['yaxis']['minor']['dtick'] = ydtick/5
+        #     except:
+        #         try:
+        #             if figures[i]['data'][0]['type'] == 'heatmap':
+        #                 new_figures[i]['layout']['xaxis']['dtick'] = 25
+        #                 new_figures[i]['layout']['yaxis']['dtick'] =  25
+        #                 new_figures[i]['layout']['xaxis']['minor']['dtick'] = 5
+        #                 new_figures[i]['layout']['yaxis']['minor']['dtick'] = 5
+        #             else:
+        #                 raise Exception
+        #         except:
+        #             new_figures[i]['layout']['xaxis']['dtick'] = None
+        #             new_figures[i]['layout']['yaxis']['dtick'] =  None
+        #             new_figures[i]['layout']['xaxis']['minor']['dtick'] = None
+        #             new_figures[i]['layout']['yaxis']['minor']['dtick'] = None
+        # for i in range(len(new_views)):
+        #     if relayout_data[i] == None:
+        #         print("CONTINUED", i)
+        #         continue
+        #     try:
+        #         new_views[i]['range']['x'] = [float(np.round(figures[i]['layout']['xaxis']['range'][0], 3)), float(np.round(figures[i]['layout']['xaxis']['range'][1], 3))]
+        #         new_views[i]['range']['y'] = [float(np.round(figures[i]['layout']['yaxis']['range'][0], 3)), float(np.round(figures[i]['layout']['yaxis']['range'][1], 3))]
+        #     except:
+        #         if relayout_data[i] == {'dragmode': 'pan'} or relayout_data[i] == {'dragmode': 'zoom'}:
+        #             raise PreventUpdate
+        #         new_views[i]['range']['x'][0], new_views[i]['range']['x'][1] = None, None
+        #         new_views[i]['range']['y'][0], new_views[i]['range']['y'][1] = None, None
+        
+        checklist = [str(i+1) for i in range(len(cur_views))]
+        return [
+            json.dumps(new_views),
+            cur_tabs,
+            json.dumps("update"), #graph
+            tab_n,
+            Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links
+        ]
+
+    #delete_series
+    if 'delete-series-button' == dash.callback_context.triggered_id['type']:
+        l = len(cur_views[n-1]['proton'])
+        if  l>1:
+            new_views = cur_views
+            new_views[n-1]['proton'].pop(series_n-1)
+            new_views[n-1]['neutron'].pop(series_n-1)
+            new_views[n-1]['nucleon'].pop(series_n-1)
+            new_views[n-1]['dataset'].pop(series_n-1)
+            new_views[n-1]['wigner'].pop(series_n-1)
+            new_views[n-1]['uncertainty'].pop(series_n-1)
+            checklist = [str(i+1) for i in range(len(cur_views))]
+            return [
+                json.dumps(new_views), 
+                cur_tabs,
+                json.dumps("update"), #graph
+                tab_n,
+                Sidebar(new_views[n-1], series_n-1+math.ceil(abs(series_n-l)/10), len(cur_tabs)).show(),
+                checklist,
+                links
             ]
         else:
             raise PreventUpdate
     
-    #reset_page
-    if "reset-button" == dash.callback_context.triggered_id:
-        new_views = [{"graphstyle": 'landscape', "quantity": 'BE', "dataset": 'EXP', "colorbar": 'linear', "wigner": 0, "id": 1, 
-        "ZRange": {"zmin": None, "zmax": None, "protons": 40}, "NRange": {"nmin": None, "nmax": None, "neutrons": 40}}]
+    #series_tabs
+    if "series_tabs" == dash.callback_context.triggered_id['type']:
+        checklist = [str(i+1) for i in range(len(cur_views))]
+        if series_n==0:
+            new_views = cur_views
+            new_views[n-1]['proton'].append(default['proton'][0])
+            new_views[n-1]['neutron'].append(default['neutron'][0])
+            new_views[n-1]['nucleon'].append(default['nucleon'][0])
+            new_views[n-1]['dataset'].append(default['dataset'][0])
+            new_views[n-1]['wigner'].append(default['wigner'][0])
+            new_views[n-1]['uncertainty'].append(default['uncertainty'][0])
+            return [
+                json.dumps(new_views), 
+                cur_tabs,
+                json.dumps("update"),
+                tab_n,
+                Sidebar(new_views[n-1], "new", len(cur_tabs)).show(),
+                checklist,
+                links
+            ]
         return [
-            json.dumps(new_views), 
-            dcc.Tab(label="1", value='tab1', style=TAB_STYLE, selected_style=SELECTED_STYLE),
-            json.dumps("update"), #graph
-            'tab1',
-            1,
-            'landscape',
-            'BE',
-            'EXP',
-            40,
-            40,
-            None,
-            None,
-            None,
-            None,
+            json.dumps(cur_views), 
+            cur_tabs,
+            json.dumps("noupdate"),
+            tab_n,
+            Sidebar(cur_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links
         ]
-
+    
     #dropdown_input
-    print('DROPDOWN')
-    new_views = cur_views
-    if "dropdown-iso-chain" == dash.callback_context.triggered_id:
-        new_views[n-1]['graphstyle'] = graphstyle
-    if "dropdown-select-quantity" == dash.callback_context.triggered_id:
-        new_views[n-1]['quantity'] = quantity
-        print(new_views[n-1]['quantity'])
-    if "dropdown-select-dataset" == dash.callback_context.triggered_id:
-        new_views[n-1]['dataset'] = dataset
-    if "dropdown-colorbar" == dash.callback_context.triggered_id:
-        new_views[n-1]['colorbar'] = colorbar
-    if "radio-wigner" == dash.callback_context.triggered_id:
-        new_views[n-1]['wigner'] = wigner
-    if "zmin" == dash.callback_context.triggered_id:
-        new_views[n-1]['ZRange']['min'] = zmin
-    if "zmax" == dash.callback_context.triggered_id:
-        new_views[n-1]['ZRange']['max'] = zmax
-    if "nmin" == dash.callback_context.triggered_id:
-        new_views[n-1]['NRange']['min'] = nmin
-    if "nmax" == dash.callback_context.triggered_id:
-        new_views[n-1]['NRange']['max'] = nmax
-    if "protons" == dash.callback_context.triggered_id:
-        new_views[n-1]['ZRange']['protons'] = protons
-    if "neutrons" == dash.callback_context.triggered_id:
-        new_views[n-1]['NRange']['neutrons'] = neutrons
+    if "dropdown-dimension" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['dimension'] = dimension[0]
+    elif "dropdown-1D" == dash.callback_context.triggered_id['type']:   
+        new_views[n-1]['chain'] = oneD[0]
+    elif "dropdown-colorbar" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['colorbar'] = colorbar[0]
+    elif "radio-wigner" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['wigner'][series_n-1] = wigner[0]
+    elif "input-protons" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['proton'][series_n-1] = protons[0]
+    elif "input-neutrons" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['neutron'][series_n-1] = neutrons[0]
+    elif "input-nucleons" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['nucleon'][series_n-1] = nucleons[0]
+    elif "dropdown-quantity" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['quantity'] = quantity[0]
+        new_views[n-1]['colorbar_range'] = [None, None]
+    elif "dropdown-dataset" == dash.callback_context.triggered_id['type']:
+        new_views[n-1]['dataset'][series_n-1] = dataset[0]
+    elif "uncertainty-checklist" == dash.callback_context.triggered_id['type']:
+        u = bool(len(uncer[0]))
+        new_views[n-1]['uncertainty'][series_n-1] = u
+    checklist = [str(i+1) for i in range(len(cur_views))]
     return [
-        json.dumps(new_views), 
-        cur_tabs, 
-        json.dumps("update"), 
-        tab_n, 
-        graphid,
-        graphstyle, 
-        quantity, 
-        dataset,
-        protons, 
-        neutrons,
-        zmin, 
-        zmax, 
-        nmin, 
-        nmax
+        json.dumps(new_views),
+        cur_tabs,
+        json.dumps("update"),
+        tab_n,
+        Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+        checklist,
+        links
     ]
+
 
 
 @app.callback(
     Output("div-graphs", "children"),
+    Output("div-graphs", "style"),
     [
         Input("triggerGraph", "data"),
+        Input("breakpoints", "widthBreakpoint"),
         State("viewsmemory", "data"),
-        #Input("graph-chains1", "relayoutData"),
     ],
 )
-def main_output(
-    trigger,
-    json_views,
-    #relayout_data
-):
+def graph_output(trigger: str, breakpoint_name: str, json_views: list):  
     if(json.loads(trigger)=="update"):
+        views_list = json.loads(json_views)
+        graph_styles = []
+        if breakpoint_name == "lg":
+            style = {"display": 'grid', "grid-template-columns": '[c1] 50% [c2] 50% [c3]',
+            "grid-template-rows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
+            for i in range(len(views_list)):
+                graph_styles.append({"grid-area": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
+                                     "width": '27vw', "height": '19.8vw'})
+        else:
+            style = {"display": 'flex', "width": '100%'}
+            graph_styles = [{"width": '48.75vw', "height": '35.75vw'} for i in range(len(views_list))]
         output = []
-        views_list = json.loads(json_views) # list of dicts
-        print("OUT ", views_list)
-        for view_dict in views_list: # iterate through dicts in list
-            view = views.View(view_dict) # create a view
-            output.append(view.plot())
-        output.append(html.Button('New Plot', id='new-button', value=None))
-        return output
+        for i in range(len(views_list)): # iterate through dicts in list
+            view = View(views_list[i], i+1)
+            output.append(view.plot(graph_style=graph_styles[i]))
+
+        return output, style
     raise PreventUpdate
-
-    # if "dropdown-iso-chain" == dash.callback_context.triggered_id
-    #     outputs = []
-    #     for fig in figures:
-    #         try:
-    #             fig['layout']["xaxis"]["range"] = [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
-    #             fig['layout']["xaxis"]["autorange"] = False
-    #         except (KeyError, TypeError):
-    #             fig['layout']["xaxis"]["autorange"] = True
-
-    #         outputs.append(fig)
-    #     return outputs
-
-# @app.callback([Output('graph2', 'figure')],
-#          [Input('graph', 'relayoutData')], # this triggers the event
-#          [State('graph2', 'figure')])
-# def zoom_event(relayout_data, *figures):
-#     outputs = []
-#     for fig in figures:
-#         try:
-#             fig['layout']["xaxis"]["range"] = [nmin, nmax]
-#             fig['layout']["xaxis"]["autorange"] = False
-#         except (KeyError, TypeError):
-#             fig['layout']["xaxis"]["autorange"] = True
-
-#         outputs.append(fig)
-
-#     return outputs
-
-
-    # t_start = time.time()
-    #
-    # NRange, ZRange, N, Z = [None, None, None, None]
-    # 
-    # np.set_printoptions(precision=5)
-    # if(chain=='single'):
-    #     if(N==None or Z==None):
-    #         return [
-    #             html.Div(
-    #                 #id="svm-graph-container",
-    #                 children=[
-    #                     html.P("Welcome to Landon's BMEX! Please input your requested nuclei on the left."),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             ),
-    #         ]
-    #     elif(quantity == "All"):
-    #         all_eval = []
-    #         for name, val in  bmex.__dict__.items():
-    #             if (callable(val) and name != "OutputString" and name != "GP"):
-    #                 out_str = bmex.OutputString(name)
-    #                 result = val(N,Z,dataset)
-    #                 if isinstance(result,str):
-    #                     all_eval.append(html.P(result))
-    #                 else: 
-    #                     all_eval.append(html.P(dataset+" "+out_str+": {:.4f}".format(result)+" MeV"))
-
-    #         return [
-    #             html.Div(
-    #                 #id="svm-graph-container",
-    #                 children=all_eval,
-    #                 style={'font-size':'3rem'},
-    #             ),
-    #         ]
-    #     else:
-    #         result = getattr(bmex, quantity)(N,Z,dataset)
-    #         if isinstance(result, str):
-    #             return [
-    #                 html.Div(
-    #                     #id="svm-graph-container",
-    #                     children=[
-    #                         html.P(result),
-    #                     ],
-    #                     style={'font-size':'3rem'},
-    #                 ),
-    #             ]
-    #         else:
-    #             out_str = bmex.OutputString(quantity)
-    #             return [
-    #                 html.Div(
-    #                     #id="svm-graph-container",
-    #                     children=[
-    #                         html.P(dataset+" "+out_str+": {:.4f}".format(result)+" MeV"),
-    #                     ],
-    #                     style={'font-size':'3rem'},
-    #                 ),
-    #             ]
-    # elif chain=="isotopic":
-    #     if(NRange[0]==None or NRange[1]==None):
-    #         return [
-    #             html.Div(
-    #                 #id="svm-graph-container",
-    #                 children=[
-    #                     html.P("Welcome to BMEX! Please input your requested nuclei on the left."),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             ),
-    #         ]
-    #     func = getattr(bmex, quantity)
-    #     out_str = bmex.OutputString(quantity)
-    #     #& (bmex.df["Z"]==Z1)
-    #     nmin = bmex.df[(bmex.df["Z"]==Z) & (bmex.df["Model"]==dataset)]['N'].min()
-    #     nmax = bmex.df[(bmex.df["Z"]==Z) & (bmex.df["Model"]==dataset)]['N'].max()
-    #     if NRange[0] < nmin:
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=[
-    #                     html.P("Input value for N Min, "+str(NRange[0])+\
-    #                         ", is smaller than the minimum N from the data, "+str(nmin)),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             )
-    #         ]
-    #     if NRange[1] > nmax:
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=[
-    #                     html.P("Input value for N Max, "+str(NRange[1])+\
-    #                         ", is smaller than the maximum N from the data, "+str(nmax)),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             )
-    #         ]
-    #     if (NRange[0] >= nmin) and (NRange[1] <= nmax):
-    #         isotope_chain = figs.isotope_chain(Z, NRange, dataset, out_str, func)
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=dcc.Loading(
-    #                     className="graph-wrapper",
-    #                     children=dcc.Graph(id="graph-chains", figure=isotope_chain),
-    #                 )
-    #             )
-    #         ]
-    # elif chain=="isotonic":
-    #     if(ZRange[0]==None or ZRange[1]==None):
-    #         return [
-    #             html.Div(
-    #                 #id="svm-graph-container",
-    #                 children=[
-    #                     html.P("Welcome to BMEX! Please input your requested nuclei on the left."),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             ),
-    #         ]
-    #     func = getattr(bmex, quantity)
-    #     out_str = bmex.OutputString(quantity)
-    #     #& (bmex.df["Z"]==Z1)
-    #     zmin = bmex.df[(bmex.df["N"]==N) & (bmex.df["Model"]==dataset)]["Z"].min()
-    #     zmax = bmex.df[(bmex.df["N"]==N) & (bmex.df["Model"]==dataset)]["Z"].max()
-    #     if ZRange[0] < zmin:
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=[
-    #                     html.P("Input value for Z Min, "+str(ZRange[0])+\
-    #                         ", is smaller than the minimum Z from the data, "+str(zmin)),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             )
-    #         ]
-    #     if ZRange[1] > zmax:
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=[
-    #                     html.P("Input value for Z Max, "+str(ZRange[1])+\
-    #                         ", is smaller than the maximum Z from the data, "+str(zmax)),
-    #                 ],
-    #                 style={'font-size':'3rem'},
-    #             )
-    #         ]
-    #     if (ZRange[0] >= zmin) and (ZRange[1] <= zmax):
-    #         isotone_chain = figs.isotone_chain(N, ZRange, dataset, out_str, func)
-    #         return [
-    #             html.Div(
-    #                 id="graph-container",
-    #                 children=dcc.Loading(
-    #                     className="graph-wrapper",
-    #                     children=dcc.Graph(id="graph-chains", figure=isotone_chain),
-    #                 )
-    #             )
-    #         ]
-    # elif chain=="landscape":
-        # l = len(graphstyle_arr)
-        # output = []
-        # for i in range(l):
-        #     if i == int(tab_n[3])-1:
-        #         layout = go.Layout(
-        #             font={"color": "#a5b1cd"},
-        #             title=dict(text=bmex.OutputString(quantity_arr[i]), font=dict(size=20)),
-        #             xaxis=dict(title=dict(text="Neutrons", font=dict(size=20)), gridcolor="#646464", tick0=0, dtick=25, showline=True, #gridcolor="#2f3445",
-        #             showgrid=True, gridwidth=1, minor=dict(tick0=0, dtick=5, showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,156]),
-        #             yaxis=dict(title=dict(text="Protons", font=dict(size=20)), gridcolor="#646464", tick0=0, dtick=25, showline=True,
-        #             showgrid=True, gridwidth=1, minor=dict(tick0=0, dtick=5, showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,104]),
-        #             #legend=dict(x=0, y=1.05, orientation="h"),
-        #             #margin=dict(l=100, r=10, t=25, b=40),
-        #             plot_bgcolor="#282b38",
-        #             paper_bgcolor="#282b38",
-        #             #uirevision=model,
-        #             width=600,
-        #             height=440,
-        #         )
-        #         fig = dcc.Graph(id='graph-chains'+str(i), figure=figs.landscape_plot(dataset_arr[i], layout, quantity_arr[i], colorbar, wigner),
-        #                 )   
-        #         plots_memory[i] = fig
-        #         output.append(fig)
-        #     else:
-        #         output.append(plots_memory[i])
-        # output.append(html.Button('New Plot', id='new-plot', value=None))
-        # #output.append(html.Button('Clone Plot', id='clone-plot', value=None))
-        # return output
-
-        #(1+2*(l-i))/(2*l)-1
-        # subplots = make_subplots(rows=l, cols=1, subplot_titles=([bmex.OutputString(quantity_arr[k]) for k in range (l)]) )
-        # for i in range(l):
-        #     if i == int(tab_n[3])-1:
-        #         fig = figs.landscape_plot(dataset_arr[i], 1/l, quantity_arr[i], colorbar, wigner)
-        #         subplots.add_trace(fig, row=i+1, col=1)
-        #         plots_memory[i] = fig
-        #     else:
-        #         subplots.add_trace(plots_memory[i], row=i+1, col=1)
-        # layout = go.Layout(
-        #     font={"color": "#a5b1cd"},
-        #     title=dict(font=dict(size=50)),
-        #     xaxis=dict(title=dict(text="Neutrons", font=dict(size=50)), gridcolor="#646464", tick0=0, dtick=25, showline=True, #gridcolor="#2f3445",
-        #     showgrid=True, gridwidth=1, minor=dict(tick0=0, dtick=5, showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,156]),
-        #     yaxis=dict(title=dict(text="Protons", font=dict(size=50)), gridcolor="#646464", title_font_size=30, tick0=0, dtick=25, showline=True,
-        #     showgrid=True, gridwidth=1, minor=dict(tick0=0, dtick=5, showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,104]),
-        #     #legend=dict(x=0, y=1.05, orientation="h"),
-        #     #margin=dict(l=100, r=10, t=25, b=40),
-        #     plot_bgcolor="#282b38",
-        #     paper_bgcolor="#282b38",
-        #     #uirevision=model,
-        #     width=600,
-        #     height=440*l,
-        #     colorbar=dict(title="", len= 1/l)
-        # )
-        # subplots.update_layout(layout)
-        # output = [dcc.Graph(id="graph-chains", figure=subplots), html.Button('New Plot', id='new-plot', value=None), html.Button('Clone Plot', id='clone-plot', value=None)] 
-        # return output
-        # return  html.Div(
-        #             id="graph-container",
-        #             children=dcc.Loading(
-        #                 className="graph-wrapper",
-        #                 children=[dcc.Graph(id="graph-chains"+str(j), figure=land_plot[j]) for j in range(len(graphstyle_arr))].append(html.Button('New Plot', id='new-plot')),
-        #             )
-        #         ), html.P("How did you get here? Click the banner to make it back to safety!")
-        
-        # else:
-        #     return  [
-        #         html.Div(
-        #             id="graph-container",
-        #             children=dcc.Loading(
-        #                 className="graph-wrapper",
-        #                 children=[dcc.Graph(id="graph-chains", figure=land_plot[0]), html.Button('New Plot', id='new-plot')],
-        #             )
-        #         )
-        #     ]
-
-@app.callback(
-    Output('intermediate-value', 'data'),
-    Output('div-graphs-loading', 'children'),
-    Input('submit-gpe', 'n_clicks'),
-    [
-        State("eta","value"),
-        State("rhon","value"),
-        State("rhoz","value"),
-        State('div-graphs-loading','children'),
-    ],
-    prevent_initial_call=True
-)
-def update_GP_json(n_clicks, eta, rhon, rhoz, old_out):
-    t_start = time.time()
-    model = [eta, rhon, rhoz]
-    if(model == gpe.default_model):
-        return json.dumps(gpe.gp_output.tolist()), [old_out[0]]
-    gp_out = gpe.update_GP(model)
-    gp_json = json.dumps(gp_out.tolist())
-    t_stop = time.time()
-    train_out = [html.P("Trained! Took {:.4f} seconds!".format(t_stop-t_start))]
-    return gp_json, [old_out[0]]+train_out
-
-# @app.callback(
-#     Output('div-graphs-loading', 'children'),
-#     Input('submit-gpe', 'n_clicks'),
-#     [
-#         State("eta","value"),
-#         State("rhon","value"),
-#         State("rhoz","value"),
-#         State('div-graphs-loading','children'),
-#     ],
-#     prevent_initial_call=True
-# )
-# def update_GP(n_clicks, eta, rhon, rhoz, old_out):
-#     t_start = time.time()
-
-#     model = [eta, rhon, rhoz]
-#     gpe.gp_output = gpe.update_GP(model)
-#     #gp_json = json.dumps(gp_out.tolist())
-#     t_stop = time.time()
-#     train_out = [html.P("Trained! Took {:.4f} seconds!".format(t_stop-t_start))]
-#     return [old_out[0]] + train_out
-
-
-@app.callback(
-    Output("div-graphs-gpe", "children"),
-    [
-        Input("dropdown-select-quantity", "value"),
-        Input("dropdown-select-dataset", "value"),
-        Input("neutrons", "value"),
-        Input("protons", "value"),
-        Input("dropdown-iso-chain", "value"),
-        [Input("nmin","value"),Input("nmax","value")],
-        [Input("zmin","value"),Input("zmax","value")],
-        Input("intermediate-value","data"),
-    ],
-)
-def main_output_gpe(
-    quantity,
-    dataset,
-    N,
-    Z,
-    chain,
-    NRange,
-    ZRange,
-    gp_json,
-):
-    t_start = time.time()
-    gp_out = np.array(json.loads(gp_json))
-    np.set_printoptions(precision=5)
-    if(chain=='single'):
-        if(N==None or Z==None):
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=[
-                        html.P("Welcome to the BMEX Gaussian Process Playground! Please input your requested nuclei on the left."),
-                    ],
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        elif(quantity == "All"):
-            all_eval = []
-            for name, val in  bmex.__dict__.items():
-                if (callable(val) and name != "OutputString" and name != "GP"):
-                    out_str = bmex.OutputString(name)
-                    result = val(N,Z,dataset)
-                    if isinstance(result,str):
-                        all_eval.append(html.P(result))
-                    else: 
-                        all_eval.append(html.P(dataset+" "+out_str+": {:.4f}".format(result)+" MeV"))
-
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=all_eval,
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        else:
-            result = gpe.gp_single(N,Z,gp_out)
-            if isinstance(result, str):
-                return [
-                    html.Div(
-                        #id="svm-graph-container",
-                        children=[
-                            html.P(result),
-                        ],
-                        style={'font-size':'3rem'},
-                    ),
-                ]
-            else:
-                out_str = bmex.OutputString(quantity)
-                return [
-                    html.Div(
-                        #id="svm-graph-container",
-                        children=[
-                            html.P(dataset+" "+out_str+": {:.4f}".format(result[0])+"±"+"{:.4f}".format(result[1])+" MeV"),
-                        ],
-                        style={'font-size':'3rem'},
-                    ),
-                ]
-    elif chain=="isotopic":
-        '''
-        if(NRange[0]==None or NRange[1]==None and False):
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=[
-                        html.P("Welcome to the BMEX Gaussian Process Playground! Please input your requested nuclei on the left."),
-                    ],
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        '''
-        if(Z==None):
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=[
-                        html.P("Welcome to the BMEX Gaussian Process Playground! Please input your requested nuclei on the left."),
-                    ],
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        #& (bmex.df["Z"]==Z1)
-        out_str = "Two Neutron Separation Energy"
-        #model = [0.9, 1.529, 0.2533]
-        #nmin = bmex.df[(bmex.df["Z"]==Z) & (bmex.df["Model"]==dataset)]['N'].min()
-        #nmax = bmex.df[(bmex.df["Z"]==Z) & (bmex.df["Model"]==dataset)]['N'].max()
-        '''
-        if NRange[0] < nmin:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=[
-                        html.P("Input value for N Min, "+str(NRange[0])+\
-                            ", is smaller than the minimum N from the data, "+str(nmin)),
-                    ],
-                    style={'font-size':'3rem'},
-                )
-            ]
-        if NRange[1] > nmax:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=[
-                        html.P("Input value for N Max, "+str(NRange[1])+\
-                            ", is smaller than the maximum N from the data, "+str(nmax)),
-                    ],
-                    style={'font-size':'3rem'},
-                )
-            ]
-        '''
-        #if (NRange[0] >= nmin) and (NRange[1] <= nmax):
-        isotope_chain = gpe.gp_figure_isotopic(Z,out_str,gp_out)
-        if isinstance(isotope_chain, str):
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=[
-                        html.P(isotope_chain),
-                    ],
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        else:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=dcc.Loading(
-                        className="graph-wrapper",
-                        children=dcc.Graph(id="graph-chains", figure=isotope_chain),
-                    )
-                )
-            ]
-    elif chain=="isotonic":
-        if(ZRange[0]==None or ZRange[1]==None):
-            return [
-                html.Div(
-                    #id="svm-graph-container",
-                    children=[
-                        html.P("Welcome to BMEX! Please input your requested nuclei on the left."),
-                    ],
-                    style={'font-size':'3rem'},
-                ),
-            ]
-        func = getattr(bmex, quantity)
-        out_str = bmex.OutputString(quantity)
-        #& (bmex.df["Z"]==Z1)
-        zmin = bmex.df[(bmex.df["N"]==N) & (bmex.df["Model"]==dataset)]["Z"].min()
-        zmax = bmex.df[(bmex.df["N"]==N) & (bmex.df["Model"]==dataset)]["Z"].max()
-        if ZRange[0] < zmin:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=[
-                        html.P("Input value for Z Min, "+str(ZRange[0])+\
-                            ", is smaller than the minimum Z from the data, "+str(zmin)),
-                    ],
-                    style={'font-size':'3rem'},
-                )
-            ]
-        if ZRange[1] > zmax:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=[
-                        html.P("Input value for Z Max, "+str(ZRange[1])+\
-                            ", is smaller than the maximum Z from the data, "+str(zmax)),
-                    ],
-                    style={'font-size':'3rem'},
-                )
-            ]
-        if (ZRange[0] >= zmin) and (ZRange[1] <= zmax):
-            isotone_chain = figs.isotone_chain(N, ZRange, dataset, out_str, func)
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=dcc.Loading(
-                        className="graph-wrapper",
-                        children=dcc.Graph(id="graph-chains", figure=isotone_chain),
-                    )
-                )
-            ]
-
-@app.callback(
-    Output("div-graphs-pesnet", "children"),
-    [
-        Input("dropdown-select-quantity", "value"),
-        Input("dropdown-select-dataset", "value"),
-        Input("neutrons", "value"),
-        Input("protons", "value"),
-    ],
-)
-def main_output_pesnet(
-    quantity,
-    dataset,
-    N,
-    Z,
-):
-    t_start = time.time()
-    np.set_printoptions(precision=5)
-
-    infile = "utils/All.dat"
-
-    PESfull = pd.read_csv(infile,delim_whitespace=True,low_memory=False)
-
-    if(N==None or Z==None):
-        return [
-            html.Div(
-                #id="svm-graph-container",
-                children=[
-                    html.P("Welcome to the BMEX Potential Energy Surface Generator! Please input your requested nuclei on the left."),
-                ],
-                style={'font-size':'3rem'},
-            ),
-        ] 
-    else:
-        pesnet_result = figs.pesnet_surface(N, Z)
-        #if(PESfull['A'].isin([N+Z]) and PESfull['Z'].isin([Z])):
-        if(not PESfull[(PESfull['A'] == N+Z) & (PESfull['Z'] == Z)].empty):
-            true_pes = figs.true_surface(PESfull,N,Z)
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=dcc.Loading(
-                        className="graph-wrapper",
-                        children=[dcc.Graph(id="graph-chains", figure=pesnet_result),
-                        dcc.Graph(id="graph-chains", figure=true_pes)],
-                    )
-                )
-            ]
-        else:
-            return [
-                html.Div(
-                    id="graph-container",
-                    children=dcc.Loading(
-                        className="graph-wrapper",
-                        children=dcc.Graph(id="graph-chains", figure=pesnet_result),
-                    )
-                )
-            ]
-
-
-@app.callback(
-    Output("div-emu", "children"),
-    [
-        Input("dropdown-select-dataset", "value"),
-        Input("dropdown-nuc","value"),
-        [Input("Msigma","value"),Input("Rho","value"),Input("BE","value"),\
-         Input("Mstar","value"),Input("K","value"),Input("zeta","value"),\
-         Input("J","value"),Input("L","value"),],
-    ],
-)
-def main_output_emu(
-    dataset,
-    nuc,
-    NMP,
-):
-    np.set_printoptions(precision=5)
-    nuc_dict={'16O':0,'40Ca':1,'48Ca':2,'68Ni':3,'90Zr':4,'100Sn':5,'116Sn':6,'132Sn':7,'144Sm':8,'208Pb':9}
-    if(None in NMP):
-        return [
-            html.Div(
-                #id="svm-graph-container",
-                children=[
-                    html.P("Welcome to BMEX! Please input your requested nuclear matter properties on the left!"),
-                ],
-                style={'font-size':'3rem'},
-            ),
-        ]
-    elif(dataset == "rmf"):
-        all_eval = []
-        energy, protrad, timing = rbm.rbm_emulator(nuc_dict[nuc],NMP)
-
-        all_eval.append(html.P(nuc+" Emulator Results:"))
-        all_eval.append(html.P("Binding Energy: {:.2f} MeV".format(energy)))
-        all_eval.append(html.P("Charge Radius:  {:.2f} fm".format(protrad)))
-        all_eval.append(html.P("Emulation time: {:.3f} s".format(timing)))
-
-        return [
-            html.Div(
-                #id="svm-graph-container",
-                children=all_eval,
-                style={'font-size':'3rem'},
-            ),
-        ]
-
 
 # Running the server
 if __name__ == "__main__":

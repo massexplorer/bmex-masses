@@ -1,165 +1,91 @@
 import numpy as np
 import pandas as pd
+import math
 
-# Make dictionary of models and corresponding pandas dataframes
-modelNames = ['EXP', 'ME2', 'MEdelta', 'PC1', 'NL3S', 'SKMS', 'SKP', 'SLY4', 'SV', 'UNEDF0', 'UNEDF1']
-models = [pd.read_hdf('utils/models.h5', n) for n in modelNames]
-data_dict = {modelNames[i]: models[i] for i in range(len(modelNames))}
+# # Make dictionary of models and corresponding pandas dataframes
+# modelNames = ['EXP', 'ME2', 'MEdelta', 'PC1', 'NL3S', 'SKMS', 'SKP', 'SLY4', 'SV', 'UNEDF0', 'UNEDF1']
+# models = [pd.read_hdf('utils/models.h5', n) for n in modelNames]
+# data_dict = {modelNames[i]: models[i] for i in range(len(modelNames))}
 
-# Make dictionary to convert quantity code to full quantity name
-qinput = ['BE', 'OneNSE', 'OnePSE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'QDB2t']
-qnames = ['Binding_Energy_(MeV)', 'One Neutron Separation Energy', 'One Proton Separation Energy', 'Two Neutron Separation Energy', 
-'Two Proton Separation Energy', 'Alpha Separation Energy', 'Two Proton Shell Gap', 'Two Neutron Shell Gap', 
-'Double Mass Difference', 'Neutron 3-Point Odd-Even Binding Energy Difference', 'Proton 3-Point Odd-Even Binding Energy Difference',
-'Single-Neutron Energy Splitting', 'Single-Proton Energy Splitting', 'Wigner Energy Coeffienct', 'Quad_Def_Beta2_total']
-q_dict = {qinput[j]: qnames[j] for j in range(len(qinput))}
+# # Make dictionary to convert quantity code to full quantity name
+# qinput = ['BE', 'OneNSE', 'OnePSE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'QDB2t']
+# qnames = ['Binding_Energy', 'One Neutron Separation Energy', 'One Proton Separation Energy', 'Two Neutron Separation Energy', 
+# 'Two Proton Separation Energy', 'Alpha Separation Energy',  'Two Neutron Shell Gap', 'Two Proton Shell Gap',
+# 'Double Mass Difference', 'Neutron 3-Point Odd-Even Binding Energy Difference', 'Proton 3-Point Odd-Even Binding Energy Difference',
+# 'Single-Neutron Energy Splitting', 'Single-Proton Energy Splitting', 'Wigner Energy Coeffienct', 'Quad_Def_Beta2_total']
+# q_dict = {qinput[j]: qnames[j] for j in range(len(qinput))}
+
+db = 'data/6-14-23.h5'
 
 # Retrieves single value
-def QuanValue(N,Z,model,quan,w=0):
-    df = data_dict[model]
+def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
+    df = pd.read_hdf(db, model)
     try:
-        if w==3 and N==Z:
-            return np.round(float(df[(df["N"]==N) & (df["Z"]==Z)][q_dict[quan]])*float(df[(df["N"]==N) & (df["Z"]==Z)][q_dict['WignerEC']]),6)
+        if uncertainty and model=='EXP':
+            v = np.round(float(df[(df["N"]==N) & (df["Z"]==Z) & (df["Wigner"]==W)][quan]),6)
+            e = df[(df["N"]==N) & (df["Z"]==Z) & (df["Wigner"]==W)]['e'+quan].values[0]
+            try:
+                u = np.round(float(df[(df["N"]==N) & (df["Z"]==Z) & (df["Wigner"]==W)]['u'+quan]),6)
+            except:
+                u = None
+            return v, u, e
         else:
-            return np.round(float(df[(df["N"]==N) & (df["Z"]==Z)][q_dict[quan]]),6)*-1.0
+            return np.round(float(df[(df["N"]==N) & (df["Z"]==Z) & (df["Wigner"]==W)][quan]),6), None, None
     except:
-        return "Error: "+str(model)+" data does not have "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z)
+        return "Error: "+str(model)+" data does not have "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
 
-def IsotopicChain(Z,model,quan,divisibilty,w=0):
-    df = data_dict[model]
+def Landscape(model,quan,W=0,step=2):
+    df = pd.read_hdf(db, model)
+    df = df[df["Wigner"]==W]
+    df = df[df["N"]%step==0]
+    df = df[df["Z"]%step==0]
+    print(df.loc[:,['OneNSE', 'eOneNSE']])
+    # df = df.dropna(subset=[quan])
+    arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
+    for rowi in df.index:
+        try:
+            arr2d[int(df.loc[rowi,'Z']//step), int(df.loc[rowi,'N']//step)] = np.round(df.loc[rowi,quan], 6)
+        except:
+            continue
+    if model=='EXP':
+        uncertainties = np.full((max(df['Z'])//step+1,max(df['N'])//step+1), None)
+        estimated = np.full((max(df['Z'])//step+1,max(df['N'])//step+1), None)
+        for rowi in df.index:
+            try:
+                uncertainties[df.loc[rowi,'Z']//step, df.loc[rowi,'N']//step] = np.round(df.loc[rowi,'u'+quan], 6)
+            except:
+                pass
+            try:
+                estimated[df.loc[rowi,'Z']//step, df.loc[rowi,'N']//step] = df.loc[rowi,'e'+quan]
+            except:
+                    pass
+        return df, arr2d, uncertainties, estimated
+    return df, arr2d, None, None
+
+def IsotopicChain(Z,model,quan,W=0):
+    df = pd.read_hdf(db, model)
+    df = df[df["Wigner"]==W]
     df = df[df["Z"]==Z]
-    df = df[df["N"]%divisibilty==0]
-    df[q_dict[quan]] = df[q_dict[quan]]*-1
-    return df[[q_dict[quan], "N"]]
+    df = df.dropna(subset=[quan])
+    if model=='EXP':
+        return df.loc[:, ["N", quan, "u"+quan, 'e'+quan]]
+    return df.loc[:, ["N", quan]]
 
-def IsotonicChain(N,model,quan,w=0):
-    df = data_dict[model]
-    return df[df["N"]==N][q_dict[quan]]
+def IsotonicChain(N,model,quan,W=0):
+    df = pd.read_hdf(db, model)
+    df = df[df["Wigner"]==W]
+    df = df[df["N"]==N]
+    if model=='EXP':
+        return df.loc[:, ["Z", quan, "u"+quan, 'e'+quan]]
+    return df.loc[:, ["Z", quan]]
 
-    
-# def BE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Binding_Energy_(MeV)"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def OneNSE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["One Neutron Separation Energy"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def OnePSE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["One Proton Separation Energy"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def TwoNSE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Two Neutron Separation Energy"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def TwoPSE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Two Proton Separation Energy"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def AlphaSE(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Alpha Separation Energy"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def TwoPSGap(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Two Proton Shell Gap"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def TwoNSGap(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Two Neutron Shell Gap"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def DoubleMDiff(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Double Mass Difference"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def N3PointOED(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Neutron 3-Point Odd-Even Binding Energy Difference"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def P3PointOED(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Proton 3-Point Odd-Even Binding Energy Difference"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-# def SNESplitting(N1,Z1,model,w=0):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Single-Neutron Energy Splitting"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-#     # wig = [0, Wig(N1,Z1)-Wig(N1-1,Z1), Wig2(N1,Z1)-Wig2(N1-1,Z1)]
-#     # wig2 = [0, Wig(N1+2,Z1)-Wig(N1+1,Z1), Wig2(N1+2,Z1)-Wig2(N1+1,Z1)]
-#     # res1=OneNSE(N1,Z1,model)
-#     # res2=OneNSE(N1+2,Z1,model)
-    
-#     # if isinstance(res1, str):
-#     #     return res1  
-#     # if isinstance(res2, str):
-#     #     return res2  
-#     # return (-1)**N1*((res1-wig[w])-(res2-wig2[w]))
-
-# def SPESplitting(N1,Z1,model,w=0):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Single-Proton Energy Splitting"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-#     # wig = [0, Wig(N1,Z1)-Wig(N1,Z1-1), Wig2(N1,Z1)-Wig2(N1,Z1-1)]
-#     # wig2 = [0, Wig(N1,Z1+2)-Wig(N1,Z1+1), Wig2(N1,Z1+2)-Wig2(N1,Z1+1)]
-#     # res1=OnePSE(N1,Z1,model)
-#     # res2=OnePSE(N1,Z1+2,model)
-    
-#     # if isinstance(res1, str):
-#     #     return res1
-#     # if isinstance(res2, str):
-#     #     return res2
-#     # return (-1)**Z1*((res1-wig[w])-(res2-wig2[w]))
-
-# def WignerEC(N1,Z1,model):
-#     df = data_dict[model]
-#     try:
-#         return np.round(float(df[(df["N"]==N1) & (df["Z"]==Z1)]["Wigner Energy Coeffiency"]),6)
-#     except:
-#         return "Error: "+str(model)+" data does not have this quantity available for Nuclei with N="+str(N1)+" and Z="+str(Z1)
-
-def Wig(n, z):
-    return (1.8*np.exp(-380*((n-z)/(n+z))**2))-(.84*abs(n-z)*np.exp(-(((n+z)/26)**2)))
-
-def Wig2(n, z):
-    return -47*(abs(n-z)/(n+z))
+def IsobaricChain(A,model,quan,W=0):
+    df = pd.read_hdf(db, model)
+    df = df[df["Wigner"]==W]
+    df = df[df["Z"]+df["N"]==A]
+    if model=='EXP':
+        return df.loc[:, ["Z", quan, "u"+quan, 'e'+quan]]
+    return df.loc[:, ["Z", quan]]
 
 def OutputString(quantity):
     out_str = "Quantity not found!"
@@ -193,5 +119,7 @@ def OutputString(quantity):
         out_str = "Wigner Energy Coefficient"
     elif (quantity == "QDB2t"):
         out_str = "Quad Def Beta2"
+    elif (quantity == "BE/A"):
+        out_str = "Binding Energy per Nucleon"
     return out_str
 
