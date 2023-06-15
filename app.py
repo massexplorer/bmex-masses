@@ -2,36 +2,24 @@ import time
 import numpy as np
 import math
 from datetime import date, datetime
+import json
+import plotly.express as px
+import plotly.graph_objects as go
+import base64, io
+import zipfile
+import plotly.io as pio
+import sqlite3 as sl
 
 import dash
 from dash import dcc, MATCH, ALL, html
 from dash.dependencies import Input, Output, State
-import json
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash_breakpoints import WindowBreakpoints
 
-import utils.dash_reusable_components as drc
-import utils.figures as figs
-import utils.bmex as bmex
 from utils.bmex_views import *
-import utils.gpe as gpe
-import utils.rbm as rbm
 from utils.views_class import View
 from utils.sidebar_class import Sidebar
-
-import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import pandas as pd
-import random as rand
-import h5py
-import base64, io
-import re
-import zipfile
-import plotly.io as pio
-import sqlite3 as sl
-import string
 
 
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['EXP'], 
@@ -524,49 +512,6 @@ def main_update(
                             new_views[int(link)-1]['range']['x'] = new_xrange
                             new_views[int(link)-1]['range']['y'] = new_yrange
 
-        # def round_one_sigfig(x):
-        #     return round(x, -int(math.floor(math.log10(abs(x)))))
-        # Rescales tick marks
-        # for i in range(len(figures)):
-        #     try:
-        #         if list(relayout_data[i].keys())[0]=='dragmode':
-        #             raise PreventUpdate
-        #     except:
-        #         pass
-        #     try:
-        #         xdtick = math.ceil(round_one_sigfig((2/3)*(relayout_data[i]['xaxis.range[1]']-relayout_data[i]['xaxis.range[0]'])/4))
-        #         ydtick = math.ceil(round_one_sigfig((relayout_data[i]['yaxis.range[1]']-relayout_data[i]['yaxis.range[0]'])/4))
-        #         new_figures[i]['layout']['xaxis']['dtick'] = xdtick
-        #         new_figures[i]['layout']['yaxis']['dtick'] = ydtick
-        #         new_figures[i]['layout']['xaxis']['minor']['dtick'] = xdtick/5
-        #         new_figures[i]['layout']['yaxis']['minor']['dtick'] = ydtick/5
-        #     except:
-        #         try:
-        #             if figures[i]['data'][0]['type'] == 'heatmap':
-        #                 new_figures[i]['layout']['xaxis']['dtick'] = 25
-        #                 new_figures[i]['layout']['yaxis']['dtick'] =  25
-        #                 new_figures[i]['layout']['xaxis']['minor']['dtick'] = 5
-        #                 new_figures[i]['layout']['yaxis']['minor']['dtick'] = 5
-        #             else:
-        #                 raise Exception
-        #         except:
-        #             new_figures[i]['layout']['xaxis']['dtick'] = None
-        #             new_figures[i]['layout']['yaxis']['dtick'] =  None
-        #             new_figures[i]['layout']['xaxis']['minor']['dtick'] = None
-        #             new_figures[i]['layout']['yaxis']['minor']['dtick'] = None
-        # for i in range(len(new_views)):
-        #     if relayout_data[i] == None:
-        #         print("CONTINUED", i)
-        #         continue
-        #     try:
-        #         new_views[i]['range']['x'] = [float(np.round(figures[i]['layout']['xaxis']['range'][0], 3)), float(np.round(figures[i]['layout']['xaxis']['range'][1], 3))]
-        #         new_views[i]['range']['y'] = [float(np.round(figures[i]['layout']['yaxis']['range'][0], 3)), float(np.round(figures[i]['layout']['yaxis']['range'][1], 3))]
-        #     except:
-        #         if relayout_data[i] == {'dragmode': 'pan'} or relayout_data[i] == {'dragmode': 'zoom'}:
-        #             raise PreventUpdate
-        #         new_views[i]['range']['x'][0], new_views[i]['range']['x'][1] = None, None
-        #         new_views[i]['range']['y'][0], new_views[i]['range']['y'][1] = None, None
-        
         checklist = [str(i+1) for i in range(len(cur_views))]
         return [
             json.dumps(new_views),

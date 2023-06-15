@@ -1,11 +1,6 @@
 import dash
 from dash import dcc
 from dash import html
-import numpy as np
-from dash.dependencies import Input, Output, State
-import dash_bootstrap_components as dbc
-from dash.exceptions import PreventUpdate
-import utils.dash_reusable_components as drc
 import utils.figures as figs
 from utils.bmex_views import *
 

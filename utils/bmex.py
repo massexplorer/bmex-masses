@@ -2,19 +2,6 @@ import numpy as np
 import pandas as pd
 import math
 
-# # Make dictionary of models and corresponding pandas dataframes
-# modelNames = ['EXP', 'ME2', 'MEdelta', 'PC1', 'NL3S', 'SKMS', 'SKP', 'SLY4', 'SV', 'UNEDF0', 'UNEDF1']
-# models = [pd.read_hdf('utils/models.h5', n) for n in modelNames]
-# data_dict = {modelNames[i]: models[i] for i in range(len(modelNames))}
-
-# # Make dictionary to convert quantity code to full quantity name
-# qinput = ['BE', 'OneNSE', 'OnePSE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'QDB2t']
-# qnames = ['Binding_Energy', 'One Neutron Separation Energy', 'One Proton Separation Energy', 'Two Neutron Separation Energy', 
-# 'Two Proton Separation Energy', 'Alpha Separation Energy',  'Two Neutron Shell Gap', 'Two Proton Shell Gap',
-# 'Double Mass Difference', 'Neutron 3-Point Odd-Even Binding Energy Difference', 'Proton 3-Point Odd-Even Binding Energy Difference',
-# 'Single-Neutron Energy Splitting', 'Single-Proton Energy Splitting', 'Wigner Energy Coeffienct', 'Quad_Def_Beta2_total']
-# q_dict = {qinput[j]: qnames[j] for j in range(len(qinput))}
-
 db = 'data/6-14-23.h5'
 
 # Retrieves single value
@@ -39,8 +26,6 @@ def Landscape(model,quan,W=0,step=2):
     df = df[df["Wigner"]==W]
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
-    print(df.loc[:,['OneNSE', 'eOneNSE']])
-    # df = df.dropna(subset=[quan])
     arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
     for rowi in df.index:
         try:

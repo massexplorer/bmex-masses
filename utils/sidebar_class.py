@@ -2,8 +2,6 @@ from dash import dcc
 from dash import html
 import dash_bootstrap_components as dbc
 import utils.dash_reusable_components as drc
-import utils.views_class as views
-import numpy as np
 
 
 class Sidebar:
