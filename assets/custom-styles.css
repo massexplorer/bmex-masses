@@ -187,12 +187,17 @@
     width: 100%;
     margin-top: 3rem;
     flex-direction: row;
-    height: 3rem;
+    height: 5rem;
 }
 .rescale-colorbar-button {
     width: 100%;
     padding: 0;
     color: #a5b1cd;
+}
+
+.colorbar-input {
+    width: 30%;
+    margin-right: 10%;
 }
 
 #delete-card {

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 
-db = 'data/6-14-23.h5'
+db = 'data/6-17-23.h5'
 
 # Retrieves single value
 def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
@@ -21,7 +21,7 @@ def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
     except:
         return "Error: "+str(model)+" data does not have "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
 
-def Landscape(model,quan,W=0,step=2):
+def Landscape(model,quan,W=0,step=1):
     df = pd.read_hdf(db, model)
     df = df[df["Wigner"]==W]
     df = df[df["N"]%step==0]
@@ -60,6 +60,7 @@ def IsotonicChain(N,model,quan,W=0):
     df = pd.read_hdf(db, model)
     df = df[df["Wigner"]==W]
     df = df[df["N"]==N]
+    df = df.dropna(subset=[quan])
     if model=='EXP':
         return df.loc[:, ["Z", quan, "u"+quan, 'e'+quan]]
     return df.loc[:, ["Z", quan]]
@@ -68,6 +69,7 @@ def IsobaricChain(A,model,quan,W=0):
     df = pd.read_hdf(db, model)
     df = df[df["Wigner"]==W]
     df = df[df["Z"]+df["N"]==A]
+    df = df.dropna(subset=[quan])
     if model=='EXP':
         return df.loc[:, ["Z", quan, "u"+quan, 'e'+quan]]
     return df.loc[:, ["Z", quan]]

@@ -15,11 +15,11 @@ class View:
         if self.dimension == 'single':
             return figs.single(self.quantity, self.dataset, self.proton, self.neutron, self.wigner)
         elif self.dimension == 'landscape':
-            try:
+            # try:
                 return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style,
                                  figure=figs.landscape(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, self.neutron, self.nucleon, self.colorbar_range, self.range))
-            except:
-                return html.P('This particular plot is not available', style={'font-size': 20,'padding-left': '180px', 'padding-right': '180px'})
+            # except:
+            #     return html.P('This particular plot is not available', style={'font-size': 20,'padding-left': '180px', 'padding-right': '180px'})
         elif self.dimension == '1D':
             if {'isotopic': self.proton,'isotonic': self.neutron,'isobaric': self.nucleon}[self.chain] == None:
                 return html.P('Please Enter a Valid Chain', style={'padding-left': '180px', 'padding-right': '180px'})

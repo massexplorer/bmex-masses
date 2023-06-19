@@ -11,7 +11,7 @@ import plotly.io as pio
 import sqlite3 as sl
 
 import dash
-from dash import dcc, MATCH, ALL, html
+from dash import dcc, ALL, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
@@ -253,6 +253,9 @@ def download(n_clicks, figures, json_cur_views):
         Input('confirm-reset', "submit_n_clicks"),
         #uncertainty-checklist
         Input({'type': 'uncertainty-checklist', 'index': ALL}, 'value'),
+        #colorbar-input
+        Input({'type': 'cb-input-min', 'index': ALL}, 'value'),
+        Input({'type': 'cb-input-max', 'index': ALL}, 'value'),
         #dropdowns
         Input({'type': 'dropdown-dimension', 'index': ALL}, 'value'),
         Input({'type': 'dropdown-1D', 'index': ALL}, 'value'),
@@ -267,7 +270,7 @@ def download(n_clicks, figures, json_cur_views):
 )
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, link_colorbar, rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
+    reset_button, uncer, cb_min, cb_max, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
 
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
@@ -577,8 +580,15 @@ def main_update(
             links
         ]
     
-    #dropdown_input
-    if "dropdown-dimension" == dash.callback_context.triggered_id['type']:
+    # Colorbar Input
+    if "cb-input-min" == dash.callback_context.triggered_id['type']:
+        if len(cb_min) > 0:
+            new_views[n-1]['colorbar_range'][0] = cb_min[0]
+    elif "cb-input-max" == dash.callback_context.triggered_id['type']:
+        if len(cb_max) > 0:
+            new_views[n-1]['colorbar_range'][1] = cb_max[0]
+    # Dropdown Input
+    elif "dropdown-dimension" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['dimension'] = dimension[0]
     elif "dropdown-1D" == dash.callback_context.triggered_id['type']:   
         new_views[n-1]['chain'] = oneD[0]
@@ -626,7 +636,7 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
     if(json.loads(trigger)=="update"):
         views_list = json.loads(json_views)
         graph_styles = []
-        if breakpoint_name == "lg":
+        if breakpoint_name == "lg" and len(views_list) > 1:
             style = {"display": 'grid', "grid-template-columns": '[c1] 50% [c2] 50% [c3]',
             "grid-template-rows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
             for i in range(len(views_list)):

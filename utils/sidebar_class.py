@@ -349,6 +349,17 @@ class Sidebar:
                                 title='Rescales the colorbar of the selected figure based on the min and max of its currently visable values'),
                 ]),
             )
+            output.append(
+                drc.Card(id="colorbar-input-card", children=[
+                    html.P('Colorbar Range', id='colorbar-input-label'),
+                    dcc.Input(id={'type': 'cb-input-min','index': 1}, type='number', 
+                              value=self.colorbar_range[0], className='colorbar-input',
+                              placeholder='min'),
+                    dcc.Input(id={'type': 'cb-input-max','index': 1}, type='number', 
+                              value=self.colorbar_range[1], className='colorbar-input',
+                              placeholder='max')
+                ]),
+            )
             # output.append(
             #     drc.Card(id="colorbar-slider-card", children=[
             #         dcc.RangeSlider(min=self.colorbar_range[0], max=self.colorbar_range[1], step=(self.colorbar_range[1]-self.colorbar_range[0])/10, id={'type': 'colorbar-slider','index': 1}, className='colorbar-slider'),

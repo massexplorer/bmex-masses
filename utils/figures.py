@@ -62,7 +62,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         neutrons = df['N']
         output = df[quantity]
         error_dict = None
-        est_str = ''
+        est_str = np.full(len(neutrons), '')
         markers = 'circle'
         if model[i]=='EXP':
             markers = np.array(df['e'+quantity], dtype='U10')
@@ -93,7 +93,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         protons = df['Z']
         output = df[quantity]
         error_dict = None
-        est_str = ''
+        est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='EXP':
             markers = np.array(df['e'+quantity], dtype='U10')
@@ -125,7 +125,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         protons = df['Z']
         output = df[quantity]
         error_dict = None
-        est_str = ''
+        est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='EXP':
             markers = np.array(df['e'+quantity], dtype='U10')
@@ -155,9 +155,8 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             plot_bgcolor="#282b38", paper_bgcolor="#282b38",
             #uirevision=model, width=600, height=440
     )
-
-    step = 2
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step)
+    step=1
+    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W)
     combined_str = np.full_like(vals_arr2d, '')
     if model == 'EXP':
         estimated[estimated==True] = 'E'
@@ -229,7 +228,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
 
     traces = [go.Heatmap(
-        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-1, vals_arr2d.shape[1]*step, step),
+        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-.5, vals_arr2d.shape[1]*step, step),
         z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar), colorbar=dict(title="MeV"), customdata=combined_str,
         hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
         text=estimated, texttemplate="%{text}",
