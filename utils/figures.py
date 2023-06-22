@@ -47,7 +47,7 @@ def single(quantity, model, Z, N, wigner=[0]):
             return html.P(out_str)
         return html.P(result)
 
-def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Neutrons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
@@ -58,6 +58,8 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
     traces = []
     for i in range(len(Z)):
         df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        if even_even:
+            df = df[df['N']%2==0]
         neutrons = df['N']
         # output = np.abs(df[quantity])
         output = df[quantity]
@@ -79,7 +81,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
-def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
@@ -90,6 +92,8 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
     traces = []
     for i in range(len(N)):
         df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        if even_even:
+            df = df[df['Z']%2==0]
         protons = df['Z']
         output = df[quantity]
         error_dict = None
@@ -111,7 +115,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
 
-def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainties):
+def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
@@ -122,6 +126,8 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     traces = []
     for i in range(len(A)):
         df = bmex.IsobaricChain(A[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        if even_even:
+            df = df[df['Z']%2==0]
         protons = df['Z']
         output = df[quantity]
         error_dict = None
@@ -143,7 +149,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
 
-def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None]):
+def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False, uncertainties=False):
     W = wigner[0]
     model = model[0]
     layout = go.Layout(
@@ -156,7 +162,9 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             #uirevision=model, width=600, height=440
     )
     step=1
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W)
+    if even_even:
+        step=2
+    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step)
     combined_str = np.full_like(vals_arr2d, '')
     if model == 'EXP':
         estimated[estimated==True] = 'E'
@@ -228,7 +236,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
 
     traces = [go.Heatmap(
-        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-.5, vals_arr2d.shape[1]*step, step),
+        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-step/2, vals_arr2d.shape[1]*step, step),
         z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar), colorbar=dict(title="MeV"), customdata=combined_str,
         hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
         text=estimated, texttemplate="%{text}",
@@ -237,7 +245,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
 
-def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None]):
+def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False):
     W = wigner[0]
     model = model[0]
     layout = go.Layout(
@@ -250,9 +258,10 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
             #uirevision=model, width=600, height=440
     )
     step=1
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, 0)
-    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('EXP', quantity, W)
-
+    if even_even:
+        step=2
+    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, 0, step)
+    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('EXP', quantity, W, step)
     vals_arr2d = vals_arr2d[ : min(len(vals_arr2d_exp),len(vals_arr2d)) , : min(len(vals_arr2d_exp[0]),len(vals_arr2d[0])) ]
     vals_arr2d_exp = vals_arr2d_exp[:len(vals_arr2d),:len(vals_arr2d[0])]
     for r in range(len(vals_arr2d)):
@@ -260,6 +269,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
             if vals_arr2d_exp[r][c] == None or vals_arr2d[r][c] == None :
                 vals_arr2d_exp[r][c] = 0
                 vals_arr2d[r][c] = 9999
+                estimated[r][c] = None
 
     vals_arr2d = vals_arr2d - vals_arr2d_exp
     for r in range(len(vals_arr2d)):
@@ -267,7 +277,25 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
             if vals_arr2d[r][c] == 9999:
                 vals_arr2d[r][c] = None
 
-    combined_str = np.full_like(vals_arr2d, '')
+    estimated[estimated==True] = 'E'
+    estimated[estimated==False] = ''
+    estimated[estimated==None] = ''
+    est_str = estimated.copy()
+    est_str[est_str=='E'] = 'Estimated'
+    combined_str = est_str.copy()
+    if quantity == 'BE':
+        uncertainties[uncertainties==None] = ''
+        for ri in range(len(uncertainties)):
+            for ci in range(len(uncertainties[0])):
+                if uncertainties[ri,ci] != '':
+                    uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
+        
+        combined_str = est_str.copy()
+        for r in range(len(est_str)):
+            for c in range(len(est_str[r])):
+                combined_str[r][c] = uncertainties[r][c] + '<br>' +est_str[r][c]
+
+    
 
     filtered = []
     for e in vals_arr2d.flatten():
@@ -320,7 +348,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
             return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
 
     traces = [go.Heatmap(
-        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-.5, vals_arr2d.shape[1]*step, step),
+        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-step/2, vals_arr2d.shape[1]*step, step),
         z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar), colorbar=dict(title="MeV"), customdata=combined_str,
         hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
         text=estimated, texttemplate="%{text}",
@@ -329,7 +357,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
 
-def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Neutrons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
@@ -344,6 +372,8 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         exp.columns=['N', quantity+'_exp', 'u'+quantity, 'e'+quantity]
         df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
         master = pd.merge(exp, df, how='inner', on=['N'])
+        if even_even:
+            master = master[master['N']%2==0]
         neutrons = master['N']
         output = np.array(master[quantity]) - np.array(master[quantity+'_exp'])
         error_dict = None
@@ -364,7 +394,7 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
-def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
@@ -378,6 +408,8 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         exp.columns=['Z', quantity+'_exp', 'u'+quantity, 'e'+quantity]
         df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
         master = pd.merge(exp, df, how='inner', on=['Z'])
+        if even_even:
+            master = master[master['Z']%2==0]
         protons = master['Z']
         output = np.array(master[quantity]) - np.array(master[quantity+'_exp'])
         error_dict = None

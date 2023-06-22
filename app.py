@@ -88,12 +88,6 @@ app.layout = html.Div(
 def display_page(pathname):
     if(pathname[:7] == "/masses"):
         out = masses_view()
-    elif(pathname == "/gpe"):
-        out = gpe_view()
-    elif(pathname == "/pesnet"):
-        out = pesnet_view()
-    elif(pathname == "/emulator"):
-        out = emu_view()
     else:
         out = html.Div(
             id="body",
@@ -631,11 +625,12 @@ def main_update(
     [
         Input("triggerGraph", "data"),
         Input("breakpoints", "widthBreakpoint"),
-        State("viewsmemory", "data"),
+        Input('even-even-checklist', 'value'),
+        State("viewsmemory", "data"),  
     ],
 )
-def graph_output(trigger: str, breakpoint_name: str, json_views: list):  
-    if(json.loads(trigger)=="update"):
+def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views: list):  
+    if(dash.callback_context.triggered_id != 'triggerGraph' or json.loads(trigger)=="update"):
         views_list = json.loads(json_views)
         graph_styles = []
         if breakpoint_name == "lg" and len(views_list) > 1:
@@ -650,8 +645,7 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
         output = []
         for i in range(len(views_list)): # iterate through dicts in list
             view = View(views_list[i], i+1)
-            output.append(view.plot(graph_style=graph_styles[i]))
-
+            output.append(view.plot(graph_style=graph_styles[i], even_even=bool(len(even_even))))
         return output, style
     raise PreventUpdate
 

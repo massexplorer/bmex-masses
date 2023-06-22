@@ -61,6 +61,10 @@ def masses_view():
                                 dcc.Checklist([], id='link-view-checklist', inline=True, )
                                             #   persistence=True, persistence_type='memory')
                             ]),
+                            drc.Card(id="even-even-card", title='Show only even-even nuclei', children=[
+                                dcc.Checklist(options=['Even-Even Nuclei'], value=[], id='even-even-checklist', inline=True, )
+                                            #   persistence=True, persistence_type='memory')
+                            ]),
                             drc.Card(id="reset-card", children=[
                                 html.Button('Reset Page', id='reset-button', className='reset-button', title='Erases all user selections'),
                             ]),

@@ -335,7 +335,7 @@ height: auto; */
     grid-template-columns: [c1] 100% [c2];
     grid-template-rows: [r1] 50% [r2] 50% [r3];
     width: 90%;
-    margin-bottom: 3rem;
+    margin-bottom: 1rem;
     height: 6rem;
     border: 1px solid #bbb;
     border-radius: 6px;
@@ -354,6 +354,15 @@ height: auto; */
     grid-row: r2 / r3;
     /* font-size: 1vw; */
 }
+
+#even-even-card {
+    width: 90%;
+    display: flex;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-direction: column;
+}
+
 
 
 #range-card {
