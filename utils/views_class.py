@@ -21,7 +21,7 @@ class View:
             # except:
             #     return html.P('This particular plot is not available', style={'font-size': 20,'padding-left': '180px', 'padding-right': '180px'})
         elif self.dimension == '1D':
-            if {'isotopic': self.proton,'isotonic': self.neutron,'isobaric': self.nucleon}[self.chain] == None:
+            if {'isotopic':self.proton,'isotonic':self.neutron,'isobaric':self.nucleon,'isotopic_diff':self.proton,'isotonic_diff':self.neutron}[self.chain] == None:
                 return html.P('Please Enter a Valid Chain', style={'padding-left': '180px', 'padding-right': '180px'})
             return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style, 
                              figure=getattr(figs, self.chain)(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, self.neutron, self.nucleon, self.range, self.uncertainty))

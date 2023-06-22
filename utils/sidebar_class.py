@@ -56,9 +56,9 @@ class Sidebar:
 
     def nucleon_card(self, index):
         if self.dimension == '1D':
-            if self.chain == "isotopic":
+            if self.chain[:8] == "isotopic":
                 return self.proton_card(index)
-            elif self.chain == "isotonic":
+            elif self.chain[:8] == "isotonic":
                 return self.neutron_card(index)
             elif self.chain == "isobaric":
                 return drc.Card(
@@ -81,16 +81,16 @@ class Sidebar:
                 return html.P("ERROR")
 
     def get_letter(self):
-        if self.chain=='isotopic':
+        if self.chain[:8]=='isotopic':
             return "Z"
-        if self.chain=='isotonic':
+        if self.chain[:8]=='isotonic':
             return "N"
         return "A"
 
     def get_nucleon_count(self, i):
-        if self.chain=='isotopic':
+        if self.chain[:8]=='isotopic':
             return self.proton[i]
-        if self.chain=='isotonic':
+        if self.chain[:8]=='isotonic':
             return self.neutron[i]
         return self.nucleon[i]
 
@@ -123,6 +123,8 @@ class Sidebar:
                             {"label": "Isotopic Chain", "value": "isotopic"},
                             {"label": "Isotonic Chain", "value": "isotonic"},
                             {"label": "Isobaric Chain", "value": "isobaric"},
+                            {"label": "Isotopic EXP Diff", "value": "isotopic_diff"},
+                            {"label": "Isotonic EXP Diff", "value": "isotonic_diff"},
                         ],
                         clearable=False,
                         searchable=False,
@@ -201,6 +203,8 @@ class Sidebar:
             {"label": "SV", "value": "SV"},
             {"label": "UNEDF0", "value": "UNEDF0"},
             {"label": "UNEDF1", "value": "UNEDF1"},
+            {"label": "FRDM12", "value": "FRDM"},
+            {"label": "HFB24", "value": "HFB24"},
         ]
 
 
@@ -217,6 +221,8 @@ class Sidebar:
                 {"label": "SV", "value": "SV"},
                 {"label": "UNEDF0", "value": "UNEDF0"},
                 {"label": "UNEDF1", "value": "UNEDF1"},
+                {"label": "FRDM12", "value": "FRDM"},
+                {"label": "HFB24", "value": "HFB24"},
             ]
 
         if self.quantity=="QDB2t":
@@ -232,6 +238,8 @@ class Sidebar:
                 {"label": "SV", "value": "SV"},
                 {"label": "UNEDF0", "value": "UNEDF0"},
                 {"label": "UNEDF1", "value": "UNEDF1"},
+                {"label": "FRDM12", "value": "FRDM"},
+                {"label": "HFB24", "value": "HFB24"},
             ] 
 
         tabs_component, series_button_card, uncertainty_card = None, None, [None]
@@ -239,7 +247,7 @@ class Sidebar:
             tabs = []
             for i in range(len(self.dataset)):
                 tabs.append(dcc.Tab(label=self.get_letter()+"="+str(self.get_nucleon_count(i))+" | "+str(self.dataset[i]), value='tab'+str(i+1), className='series-tab', selected_className='series-tab--selected'))
-            if len(self.dataset) < 8:
+            if len(self.dataset) < 9:
                 tabs.append(dcc.Tab(label="+", value='tab0', className='series-tab', selected_className='series-tab--selected'))  
             tabs_component = dcc.Tabs(id={'type': 'series_tabs','index': 1}, value='tab'+str(self.series_n), className='series-tabs', children=tabs)
             if len(self.dataset) > 1:

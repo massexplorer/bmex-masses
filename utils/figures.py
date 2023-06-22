@@ -1,13 +1,12 @@
-import colorlover as cl
+
 import plotly.graph_objs as go
-import plotly.express as px
 import numpy as np
 import utils.bmex as bmex
 from pickle import dump, load
 import pandas as pd
 from dash import html
 
-series_colors = ["#e76f51", "#a5b1cd", "#ffffff", "#13c6e9", "#ffc300", "#1eae00", "#ff6692", "#b6e880"]
+series_colors = ["#e76f51", "#a5b1cd", "#ffffff", "#13c6e9", "#ffc300", "#1eae00", "#ff6692", "#b6e880", "#b624ff"]
 
 def single(quantity, model, Z, N, wigner=[0]):
     Z = Z[0]
@@ -60,6 +59,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
     for i in range(len(Z)):
         df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
         neutrons = df['N']
+        # output = np.abs(df[quantity])
         output = df[quantity]
         error_dict = None
         est_str = np.full(len(neutrons), '')
@@ -234,4 +234,73 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         text=estimated, texttemplate="%{text}",
     )]
 
+    return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
+
+def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+    layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotopic Chain", "font": {"size": 20}}, 
+        plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
+        xaxis=dict(title="Neutrons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        )
+    traces = []
+   
+    for i in range(len(Z)):
+        exp = bmex.IsotopicChain(Z[i],'EXP',quantity,wigner[i]).sort_values(by=['N'])
+        exp.columns=['N', quantity+'_exp', 'u'+quantity, 'e'+quantity]
+        df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        master = pd.merge(exp, df, how='inner', on=['N'])
+        neutrons = master['N']
+        output = np.array(master[quantity]) - np.array(master[quantity+'_exp'])
+        error_dict = None
+        est_str = np.full(len(neutrons), '')
+        markers = 'circle'
+        if model[i]=='EXP':
+            markers = np.array(df['e'+quantity], dtype='U10')
+            est_str = markers.copy()
+            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
+            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            if uncertainties[i]:
+                error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+        traces.append(go.Scatter(
+            x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i])+'<br>avg: '+str(round(np.mean(abs(output)), 2)),
+            marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
+            line={"width": 1}, error_y=error_dict, customdata=est_str,
+            hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+        ))
+    return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
+
+def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
+    layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotonic Chain", "font": {"size": 20}}, 
+        plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
+        xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)), 
+        )
+    traces = []
+    for i in range(len(N)):
+        exp = bmex.IsotonicChain(N[i],'EXP',quantity,wigner[i]).sort_values(by=['Z'])
+        exp.columns=['Z', quantity+'_exp', 'u'+quantity, 'e'+quantity]
+        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        master = pd.merge(exp, df, how='inner', on=['Z'])
+        protons = master['Z']
+        output = np.array(master[quantity]) - np.array(master[quantity+'_exp'])
+        error_dict = None
+        est_str = np.full(len(protons), '')
+        markers = 'circle'
+        if model[i]=='EXP':
+            markers = np.array(df['e'+quantity], dtype='U10')
+            est_str = markers.copy()
+            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
+            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            if uncertainties[i]:
+                error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+        traces.append(go.Scatter(
+            x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+str(model[i])+'<br>avg: '+str(round(np.mean(abs(output)), 2)), 
+            marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
+            line={"width": 1}, error_y=error_dict, customdata=est_str,
+            hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+        ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])

@@ -207,8 +207,10 @@ def download(n_clicks, figures, json_cur_views):
                     xaxis=dict(linecolor='black', showgrid=False,  minor=dict(showgrid=False)),
                     yaxis=dict(linecolor='black', showgrid=False, minor=dict(showgrid=False)),
                     plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
-                
-                fig.update_traces(dict(marker=dict(color='#000000')), dict(marker=dict(color='#ffffff')))
+
+                for trace in fig.data:
+                    if trace.marker.color == '#ffffff':
+                        trace.marker.color = '#000000'
 
                 fig.write_image(buf, format='pdf', engine="kaleido")
                 zf.writestr(filename, buf.getvalue())
