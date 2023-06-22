@@ -105,6 +105,7 @@ class Sidebar:
                         {"label": "Single Nucleus", "value": "single"},
                         {"label": "1D Chains", "value": "1D"},
                         {"label": "Landscape", "value": "landscape"},
+                        {"label": "Diff Landscape", "value": "landscape_diff"},
                     ],
                     clearable=False,
                     searchable=False,
@@ -330,7 +331,7 @@ class Sidebar:
                 ),
             )
 
-        if self.dimension == 'landscape':
+        if self.dimension[:9] == 'landscape':
             output.append(
                 drc.Card(
                     id="colorbar-card", title='Changes the color scheme of the selected figure',

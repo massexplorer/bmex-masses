@@ -236,6 +236,99 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
 
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
+
+def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None]):
+    W = wigner[0]
+    model = model[0]
+    layout = go.Layout(
+            title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), font={"color": "#a5b1cd"},
+            xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor="#646464", showline=True,  #gridcolor="#2f3445",
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,156]),
+            yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor="#646464", showline=True, 
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,104]),
+            plot_bgcolor="#282b38", paper_bgcolor="#282b38",
+            #uirevision=model, width=600, height=440
+    )
+    step=1
+    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, 0)
+    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('EXP', quantity, W)
+
+    vals_arr2d = vals_arr2d[ : min(len(vals_arr2d_exp),len(vals_arr2d)) , : min(len(vals_arr2d_exp[0]),len(vals_arr2d[0])) ]
+    vals_arr2d_exp = vals_arr2d_exp[:len(vals_arr2d),:len(vals_arr2d[0])]
+    for r in range(len(vals_arr2d)):
+        for c in range(len(vals_arr2d[r])):
+            if vals_arr2d_exp[r][c] == None or vals_arr2d[r][c] == None :
+                vals_arr2d_exp[r][c] = 0
+                vals_arr2d[r][c] = 9999
+
+    vals_arr2d = vals_arr2d - vals_arr2d_exp
+    for r in range(len(vals_arr2d)):
+        for c in range(len(vals_arr2d[r])):
+            if vals_arr2d[r][c] == 9999:
+                vals_arr2d[r][c] = None
+
+    combined_str = np.full_like(vals_arr2d, '')
+
+    filtered = []
+    for e in vals_arr2d.flatten():
+        try:
+            e + 0.0
+        except:
+            pass
+        else:
+            filtered.append(e)
+    filtered = np.array(filtered)
+    if len(filtered)<5:
+        raise Exception
+    minz, maxz = colorbar_range[0], colorbar_range[1]
+    if minz == None:
+        minz = 0
+    if maxz == None:
+        maxz=float(max(filtered))
+        # maxz=float(np.percentile(filtered, [97]))
+
+    def cb(colorbar):
+        if(colorbar == 'linear'):
+            return [
+            [0, 'rgb(0, 0, 0)'],
+            [.01, 'rgb(127, 0, 255)'],
+            [.2, 'rgb(0, 0, 255)'],      
+            [.39, 'rgb(0, 255, 127)'],
+            [.58, 'rgb(127, 255, 0)'],
+            [.76, 'rgb(255, 255, 0)'],
+            [.95, 'rgb(255, 128, 0)'],
+            [1, 'rgb(255, 0, 0)'],
+            ]
+        elif(colorbar == 'equal'):
+            equalized_color = filtered[filtered>=0]
+            equalized_color = equalized_color[equalized_color<=maxz]
+            range_z = max(equalized_color) - min(equalized_color)
+            scale = (np.percentile(equalized_color, [19*x for x in range(1,6)]))/range_z
+            return [
+            [0, 'rgb(0, 0, 0)'],
+            [.01, 'rgb(127, 0, 255)'],
+            [scale[0], 'rgb(0, 0, 255)'],      
+            [scale[1], 'rgb(0, 255, 127)'],
+            [scale[2], 'rgb(127, 255, 0)'],
+            [scale[3], 'rgb(255, 255, 0)'],
+            [scale[4], 'rgb(255, 128, 0)'],
+            [1, 'rgb(255, 0, 0)'],
+            ]
+        elif(colorbar == 'monochrome'):
+            return  [[0, 'rgb(230, 120, 85)'], [1, 'rgb(255, 255, 255)']]
+        elif(colorbar == 'diverging'):
+            return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
+
+    traces = [go.Heatmap(
+        x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-.5, vals_arr2d.shape[1]*step, step),
+        z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar), colorbar=dict(title="MeV"), customdata=combined_str,
+        hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
+        text=estimated, texttemplate="%{text}",
+    )]
+
+    return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
+
+
 def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
