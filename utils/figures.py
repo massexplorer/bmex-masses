@@ -66,7 +66,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
-        if model[i]=='EXP':
+        if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype='U10')
             est_str = markers.copy()
             est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
@@ -99,7 +99,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
-        if model[i]=='EXP':
+        if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype='U10')
             est_str = markers.copy()
             est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
@@ -133,7 +133,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
-        if model[i]=='EXP':
+        if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype='U10')
             est_str = markers.copy()
             est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
@@ -166,10 +166,8 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         step=2
     data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step)
     combined_str = np.full_like(vals_arr2d, '')
-    if model == 'EXP':
-        estimated[estimated==True] = 'E'
-        estimated[estimated==False] = ''
-        estimated[estimated==None] = ''
+    if model == 'AME2020':
+        estimated = np.where(estimated==1, 'E', '')
         est_str = estimated.copy()
         est_str[est_str=='E'] = 'Estimated'
         combined_str = est_str.copy()
@@ -261,7 +259,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     if even_even:
         step=2
     data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, 0, step)
-    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('EXP', quantity, W, step)
+    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('AME2020', quantity, W, step)
     vals_arr2d = vals_arr2d[ : min(len(vals_arr2d_exp),len(vals_arr2d)) , : min(len(vals_arr2d_exp[0]),len(vals_arr2d[0])) ]
     vals_arr2d_exp = vals_arr2d_exp[:len(vals_arr2d),:len(vals_arr2d[0])]
     for r in range(len(vals_arr2d)):
@@ -368,7 +366,7 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
     traces = []
    
     for i in range(len(Z)):
-        exp = bmex.IsotopicChain(Z[i],'EXP',quantity,wigner[i]).sort_values(by=['N'])
+        exp = bmex.IsotopicChain(Z[i],'AME2020',quantity,wigner[i]).sort_values(by=['N'])
         exp.columns=['N', quantity+'_exp', 'u'+quantity, 'e'+quantity]
         df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
         master = pd.merge(exp, df, how='inner', on=['N'])
@@ -379,7 +377,7 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
-        if model[i]=='EXP':
+        if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype='U10')
             est_str = markers.copy()
             est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
@@ -404,7 +402,7 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         )
     traces = []
     for i in range(len(N)):
-        exp = bmex.IsotonicChain(N[i],'EXP',quantity,wigner[i]).sort_values(by=['Z'])
+        exp = bmex.IsotonicChain(N[i],'AME2020',quantity,wigner[i]).sort_values(by=['Z'])
         exp.columns=['Z', quantity+'_exp', 'u'+quantity, 'e'+quantity]
         df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
         master = pd.merge(exp, df, how='inner', on=['Z'])
@@ -415,7 +413,7 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
-        if model[i]=='EXP':
+        if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype='U10')
             est_str = markers.copy()
             est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
