@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 
-db = 'data/6-30-23.h5'
+db = 'data/7-3-23.h5'
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
 
 # Retrieves single value
@@ -26,7 +26,6 @@ def Landscape(model,quan,W=0,step=1):
     df = pd.read_hdf(db, model)
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
-    print(df[quan])
     arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
     for rowi in df.index:
         try:
@@ -85,8 +84,8 @@ def OutputString(quantity):
         "DoubleMDiff": "Double Mass Difference",
         "N3PointOED": "Neutron 3-Point Odd-Even Binding Energy Difference",
         "P3PointOED": "Proton 3-Point Odd-Even Binding Energy Difference",
-        "SNES": "Single Neutron Energy Spacing",
-        "SPES": "Single Particle Energy Spacing",
+        "SNESplitting": "Single Neutron Energy Splitting",
+        "SPESplitting": "Single Proton Energy Splitting",
         "WignerEC": "Wigner Energy Coefficient",
         "BEperA": "Binding Energy per Nucleon",
         "QDB2t": "Quadrupole Deformation Beta2",

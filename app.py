@@ -72,7 +72,7 @@ app.layout = html.Div(
         dcc.Store(id='intermediate-colorbar-range'),
         html.P(id='placeholder', hidden=True),
         dcc.Store(id='url-store'),
-        dcc.Store(id='viewsmemory', storage_type='memory', data=json.dumps([default]),),
+        dcc.Store(id='viewsmemory', storage_type='session', data=json.dumps([default]),),
         dcc.Store(id='triggerGraph', data=json.dumps("update")),
         dcc.ConfirmDialog(id='confirm', message='Warning! Are you sure you want to delete this view?'),
         dcc.ConfirmDialog(id='confirm-reset', message='Warning! Are you sure you want to reset this page?'),
@@ -270,7 +270,6 @@ def main_update(
 
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
-    print(new_views[0]['dataset'])
 
     n = int(tab_n[3])
     if len(series_tab) == 0:

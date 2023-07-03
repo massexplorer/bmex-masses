@@ -6,7 +6,7 @@ from pickle import dump, load
 import pandas as pd
 from dash import html
 
-series_colors = ["#e76f51", "#a5b1cd", "#ffffff", "#13c6e9", "#ffc300", "#1eae00", "#ff6692", "#b6e880", "#b624ff"]
+series_colors = ["#e76f51", "#a5b1cd", "#ffffff", "#13c6e9", "#ffc300", "#1eae00", "#ff00ff", "#b6e880", "#b366ff"]
 
 def single(quantity, model, Z, N, wigner=[0]):
     Z = Z[0]
@@ -61,23 +61,28 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         if even_even:
             df = df[df['N']%2==0]
         neutrons = df['N']
-        # output = np.abs(df[quantity])
         output = df[quantity]
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype='U10')
+            markers = np.array(df['e'+quantity], dtype=str)
             est_str = markers.copy()
-            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
-            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
+            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+            # Create a hidden scatter trace with circles for the legend
+            traces.append(go.Scatter(
+                x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
+                marker=dict(symbol='circle',size=7, color=series_colors[i])
+            ))
         traces.append(go.Scatter(
             x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i]), 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+            showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
@@ -100,17 +105,23 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype='U10')
+            markers = np.array(df['e'+quantity], dtype=str)
             est_str = markers.copy()
-            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
-            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
+            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+            # Create a hidden scatter trace with circles for the legend
+            traces.append(go.Scatter(
+                x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
+                marker=dict(symbol='circle',size=7, color=series_colors[i])
+            ))
         traces.append(go.Scatter(
             x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+str(model[i]), 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+            showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
@@ -134,17 +145,23 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype='U10')
+            markers = np.array(df['e'+quantity], dtype=str)
             est_str = markers.copy()
-            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
-            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
+            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+            # Create a hidden scatter trace with circles for the legend
+            traces.append(go.Scatter(
+                x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
+                marker=dict(symbol='circle',size=7, color=series_colors[i])
+            ))
         traces.append(go.Scatter(
             x=protons, y=output, mode="lines+markers", name='A='+str(A[i])+' | '+str(model[i]), 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+            showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
@@ -169,19 +186,15 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
     if model == 'AME2020':
         estimated = np.where(estimated==1, 'E', '')
         est_str = estimated.copy()
-        est_str[est_str=='E'] = 'Estimated'
+        est_str = np.where(estimated=='E', 'Estimated', '')
         combined_str = est_str.copy()
         if quantity == 'BE':
-            uncertainties[uncertainties==None] = ''
+            uncertainties[uncertainties==np.nan] = ''
             for ri in range(len(uncertainties)):
                 for ci in range(len(uncertainties[0])):
                     if uncertainties[ri,ci] != '':
                         uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
-            
-            combined_str = est_str.copy()
-            for r in range(len(est_str)):
-                for c in range(len(est_str[r])):
-                    combined_str[r][c] = uncertainties[r][c] + '<br>' +est_str[r][c]
+            combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
 
     filtered = []
     for e in vals_arr2d.flatten():
@@ -378,17 +391,23 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype='U10')
+            markers = np.array(df['e'+quantity], dtype=str)
             est_str = markers.copy()
-            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
-            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
+            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+            # Create a hidden scatter trace with circles for the legend
+            traces.append(go.Scatter(
+                x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
+                marker=dict(symbol='circle',size=7, color=series_colors[i])
+            ))
         traces.append(go.Scatter(
             x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i])+'<br>avg: '+str(round(np.mean(abs(output)), 2)),
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+            showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
@@ -414,16 +433,22 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype='U10')
+            markers = np.array(df['e'+quantity], dtype=str)
             est_str = markers.copy()
-            est_str[markers=='False'], est_str[markers=='True'] = '', 'Estimated'
-            markers[markers=='False'], markers[markers=='True'] = 'circle', 'star'
+            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
+            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
+            # Create a hidden scatter trace with circles for the legend
+            traces.append(go.Scatter(
+                x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
+                marker=dict(symbol='circle',size=7, color=series_colors[i])
+            ))
         traces.append(go.Scatter(
             x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+str(model[i])+'<br>avg: '+str(round(np.mean(abs(output)), 2)), 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
+            showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
