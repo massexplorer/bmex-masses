@@ -203,8 +203,11 @@ def download(n_clicks, figures, json_cur_views):
                     plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
 
                 for trace in fig.data:
-                    if trace.marker.color == '#ffffff':
-                        trace.marker.color = '#000000'
+                    try:
+                        if trace.marker.color == '#ffffff':
+                            trace.marker.color = '#000000'
+                    except:
+                        pass
 
                 fig.write_image(buf, format='pdf', engine="kaleido")
                 zf.writestr(filename, buf.getvalue())

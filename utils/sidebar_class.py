@@ -295,7 +295,6 @@ class Sidebar:
                 ])
             )
 
-
         return output
 
 
