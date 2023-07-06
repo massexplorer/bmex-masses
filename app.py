@@ -198,9 +198,10 @@ def download(n_clicks, figures, json_cur_views):
                     
                 fig.update_layout(
                     font={"color": "#000000"}, title=None,
-                    xaxis=dict(linecolor='black', showgrid=False,  minor=dict(showgrid=False)),
-                    yaxis=dict(linecolor='black', showgrid=False, minor=dict(showgrid=False)),
-                    plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
+                    xaxis=dict(linecolor='black', showgrid=True,  minor=dict(showgrid=True, gridcolor="#cccccc"),),
+                    yaxis=dict(linecolor='black', showgrid=True, minor=dict(showgrid=True, gridcolor="#cccccc"),),
+                    plot_bgcolor="#ffffff", paper_bgcolor="#ffffff", 
+                    width=46*15, height=35.75*15),
 
                 for trace in fig.data:
                     try:
@@ -644,7 +645,7 @@ def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views
                                      "width": '27vw', "height": '19.8vw'})
         else:
             style = {"display": 'flex', "width": '100%'}
-            graph_styles = [{"width": '48.75vw', "height": '35.75vw'} for i in range(len(views_list))]
+            graph_styles = [{"width": '46vw', "height": '35.75vw'} for i in range(len(views_list))]
         output = []
         for i in range(len(views_list)): # iterate through dicts in list
             view = View(views_list[i], i+1)

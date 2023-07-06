@@ -8,6 +8,10 @@ from dash import html
 
 series_colors = ["#e76f51", "#a5b1cd",  "#13c6e9", "#ffc300", "#1eae00", \
                  "#ff00ff", "#b6e880", "#b366ff", "#e33636", "#ba1160", "#327d80", "#ffffff",]
+Wstring = {0: '', 1: '_W1', 2: '_W2'}
+grid_color = "#a8a8a8"
+minor_grid_color = "#646464"
+
 
 def single(quantity, model, Z, N, wigner=[0]):
     Z = Z[0]
@@ -51,10 +55,10 @@ def single(quantity, model, Z, N, wigner=[0]):
 def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-        xaxis=dict(title="Neutrons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
-        yaxis=dict(title=quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        xaxis=dict(title="Neutrons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+        yaxis=dict(title=quantity+' (MeV)', gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
         )
     traces = []
     for i in range(len(Z)):
@@ -62,7 +66,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         if even_even:
             df = df[df['N']%2==0]
         neutrons = df['N']
-        output = df[quantity]
+        output = df[quantity+Wstring[wigner[i]]]
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
@@ -90,10 +94,10 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
 def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-        xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
-        yaxis=dict(title=quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)), 
+        xaxis=dict(title="Protons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+        yaxis=dict(title=quantity+' (MeV)', gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)), 
         )
     traces = []
     for i in range(len(N)):
@@ -101,7 +105,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
-        output = df[quantity]
+        output = df[quantity+Wstring[wigner[i]]]
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
@@ -130,10 +134,10 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
 def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-        xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
-        yaxis=dict(title=quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        xaxis=dict(title="Protons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+        yaxis=dict(title=quantity+' (MeV)', gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
         )
     traces = []
     for i in range(len(A)):
@@ -141,7 +145,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
-        output = df[quantity]
+        output = df[quantity+Wstring[wigner[i]]]
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
@@ -170,15 +174,6 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
 def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False, uncertainties=False):
     W = wigner[0]
     model = model[0]
-    layout = go.Layout(
-            title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), font={"color": "#a5b1cd"},
-            xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor="#646464", showline=True,  #gridcolor="#2f3445",
-            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,156]),
-            yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor="#646464", showline=True, 
-            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,104]),
-            plot_bgcolor="#282b38", paper_bgcolor="#282b38",
-            #uirevision=model, width=600, height=440
-    )
     step=1
     if even_even:
         step=2
@@ -253,8 +248,28 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
         text=estimated, texttemplate="%{text}",
     )]
-
-    return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
+    layout = go.Layout(
+            title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), font={"color": "#a5b1cd"},
+            xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor=grid_color, showline=True,  
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False,
+            range=[0,156]),
+            yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor=grid_color, showline=True,   
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False, 
+            range=[0,104]), #uirevision=model, width=600, height=440
+            plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
+            yaxis_scaleanchor="x", 
+    )
+    fig = go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
+    xran, yran = fig.layout.xaxis.range, fig.layout.yaxis.range
+    for t in [2, 5, 10, 20, 50, 100]:
+        try:
+            if (xran[1]-xran[0])/9 < t:
+                fig.update_layout(xaxis=dict(dtick=t), yaxis=dict(dtick=t))
+                break
+        except:
+            fig.update_layout(xaxis=dict(dtick=20), yaxis=dict(dtick=20))
+            break
+    return fig
 
 
 def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False):
@@ -262,10 +277,10 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     model = model[0]
     layout = go.Layout(
             title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), font={"color": "#a5b1cd"},
-            xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor="#646464", showline=True,  #gridcolor="#2f3445",
-            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,156]),
-            yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor="#646464", showline=True, 
-            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor="#3C3C3C",), mirror='ticks', zeroline=False, range=[0,104]),
+            xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor=grid_color, showline=True,  #gridcolor="#2f3445",
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False, range=[0,156]),
+            yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor=grid_color, showline=True, 
+            showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False, range=[0,104]),
             plot_bgcolor="#282b38", paper_bgcolor="#282b38",
             #uirevision=model, width=600, height=440
     )
@@ -372,10 +387,10 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
 def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-        xaxis=dict(title="Neutrons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
-        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
+        xaxis=dict(title="Neutrons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
         )
     traces = []
    
@@ -410,10 +425,10 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
 def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-        xaxis=dict(title="Protons", gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)),
-        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor="#646464",title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor="#3C3C3C",)), 
+        xaxis=dict(title="Protons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+        yaxis=dict(title='\u0394'+quantity+' (MeV)', gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)), 
         )
     traces = []
     for i in range(len(N)):

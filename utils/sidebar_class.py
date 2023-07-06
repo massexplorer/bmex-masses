@@ -194,7 +194,9 @@ class Sidebar:
                             drc.NamedDropdown(
                                 name="Wigner Adjustment",
                                 id={'type': 'radio-wigner','index': 1},
-                                options=[{"label": "None", "value": 0},{"label": "Wigner (1)", "value": 1},{"label": "Wigner (2)", "value": 2}],
+                                options=[{"label": "None", "value": 0, "title": "No Wigner term is added to the selected figure"},
+                                         {"label": "Wigner (1)", "value": 1, "title": "= 1.8e^(-380((N-Z)/A)^2) -.84|N-Z|e^((-A/26)^2)"},
+                                         {"label": "Wigner (2)", "value": 2, "title": "-47|N-Z|/A"}],
                                 clearable=False,
                                 searchable=False,
                                 value=self.wigner[self.series_n-1],
@@ -231,11 +233,9 @@ class Sidebar:
                         drc.NamedDropdown(
                             name="Wigner Adjustment",
                             id={'type': 'radio-wigner','index': 1},
-                            options=[
-                                {"label": "None", "value": 0},
-                                {"label": "Wigner (1)", "value": 1},
-                                {"label": "Wigner (2)", "value": 2},
-                            ],
+                            options=[{"label": "None", "value": 0, "title": "No Wigner term is added to the selected figure"},
+                                     {"label": "Wigner (1)", "value": 1, "title": "W1 = 1.8e^(-380((N-Z)/A)^2) -.84|N-Z|e^((-A/26)^2)"},
+                                     {"label": "Wigner (2)", "value": 2, "title": "W2 = -47|N-Z|/A"}],
                             clearable=False,
                             searchable=False,
                             value=self.wigner[self.series_n-1],

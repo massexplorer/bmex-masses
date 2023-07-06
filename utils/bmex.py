@@ -26,6 +26,7 @@ def Landscape(model,quan,W=0,step=1):
     df = pd.read_hdf(db, model)
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
+    df = df.dropna(subset=[quan+Wstring[W]])
     arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
     for rowi in df.index:
         try:
