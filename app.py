@@ -232,7 +232,7 @@ def download(n_clicks, figures, json_cur_views):
         State({'type': 'graph','index': ALL}, "figure"),
         State('link-view-checklist', 'value'),
         #link
-        Input("link-colorbar-button", "n_clicks"),
+        # Input("link-colorbar-button", "n_clicks"),
         #rescale
         Input({'type': 'rescale-colorbar-button', 'index': ALL}, 'n_clicks'),
         #url
@@ -269,7 +269,9 @@ def download(n_clicks, figures, json_cur_views):
     ],
 )
 def main_update(
-    json_cur_views, cur_tabs, cur_sidebar, figures, links, link_colorbar, rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
+    json_cur_views, cur_tabs, cur_sidebar, figures, links, 
+    # link_colorbar, 
+    rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
     reset_button, uncer, cb_min, cb_max, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
 
     cur_views = json.loads(json_cur_views)
@@ -457,7 +459,9 @@ def main_update(
     
     # Relayout Data Change
     if "graph" == dash.callback_context.triggered_id['type']:
-       
+        for k, view in enumerate(cur_views):
+            if view['dimension'] == 'single':
+                relayout_data.insert(k, None)
         # Store Relayout Change
         trigger_index = dash.callback_context.triggered_id['index']
         new_data = relayout_data[trigger_index-1]
@@ -645,7 +649,7 @@ def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views
                                      "width": '27vw', "height": '19.8vw'})
         else:
             style = {"display": 'flex', "width": '100%'}
-            graph_styles = [{"width": '46vw', "height": '35.75vw'} for i in range(len(views_list))]
+            graph_styles = [{"width": '48vw', "height": '35.75vw'} for i in range(len(views_list))]
         output = []
         for i in range(len(views_list)): # iterate through dicts in list
             view = View(views_list[i], i+1)

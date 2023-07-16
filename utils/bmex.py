@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import math
 
-db = 'data/7-3-23.h5'
+db = 'data/7-10-23.h5'
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
 
 # Retrieves single value
@@ -20,13 +20,17 @@ def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
         else:
             return np.round(df[(df["N"]==N) & (df["Z"]==Z)][quan].values[0],6), None, None
     except:
-        return "Error: "+str(model)+" data does not have "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
+        return str(model)+" has no "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
 
-def Landscape(model,quan,W=0,step=1):
+def Landscape(model,quan,W=0,step=1,SPSadj=False):
     df = pd.read_hdf(db, model)
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
     df = df.dropna(subset=[quan+Wstring[W]])
+    if SPSadj=='N':
+        df[quan+Wstring[W]] = df[quan+Wstring[W]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+    elif SPSadj=='P':
+        df[quan+Wstring[W]] = df[quan+Wstring[W]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 - (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
     arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
     for rowi in df.index:
         try:

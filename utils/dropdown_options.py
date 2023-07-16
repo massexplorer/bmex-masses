@@ -2,7 +2,7 @@
 # Key: quantities ; Value: list of dictionaries with invalid datasets disabled.
 def dataset_options(quan):
     # All Models
-    if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA']:
+    if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA', 'All']:
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"},

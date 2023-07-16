@@ -187,18 +187,6 @@
     line-height: 0;
 }
 
-#colorbar-scale-card {
-    width: 100%;
-    margin-top: 3rem;
-    flex-direction: row;
-    height: 5rem;
-}
-.rescale-colorbar-button {
-    width: 100%;
-    padding: 0;
-    color: #a5b1cd;
-}
-
 .colorbar-input {
     width: 30%;
     margin-right: 10%;
@@ -308,7 +296,6 @@ height: auto; */
     vertical-align: middle;
 }
 
-
 #download-card {
     width: 90%;
     margin-bottom: 2rem;
@@ -362,15 +349,21 @@ height: auto; */
 #even-even-card {
     width: 90%;
     display: flex;
-    margin-bottom: 1rem;
     align-items: center;
     flex-direction: column;
 }
 
-
-
-#range-card {
-    display: none;
+#colorbar-scale-card {
+    width: 90%;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    flex-direction: row;
+    height: 5rem;
+}
+.rescale-colorbar-button {
+    width: 100%;
+    padding: 0;
+    color: #a5b1cd;
 }
 
 #reset-card {

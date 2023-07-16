@@ -253,8 +253,9 @@ class Sidebar:
                             name="Colorbar Style",
                             id={'type': 'dropdown-colorbar','index': 1},
                             options=[
-                                {"label": "Linear", "value": "linear"},
-                                {"label": "Equalized", "value": "equal"},
+                                {"label": "Rainbow", "value": "linear"},
+                                {"label": "Extended Rainbow", "value": "extended_linear"},
+                                {"label": "Equalized Rainbow", "value": "equal"},
                                 {"label": "Monochrome", "value": "monochrome"},
                                 {"label": "Diverging", "value": "diverging"},
                             ],
@@ -264,12 +265,6 @@ class Sidebar:
                         )
                     ]
                 )
-            )
-            output.append(
-                drc.Card(id="colorbar-scale-card", children=[
-                    html.Button("Rescale Colorbar", id={'type': 'rescale-colorbar-button','index': 1}, className='rescale-colorbar-button', 
-                                title='Rescales the colorbar of the selected figure based on the min and max of its currently visable values'),
-                ]),
             )
             output.append(
                 drc.Card(id="colorbar-input-card", children=[
