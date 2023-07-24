@@ -144,7 +144,7 @@ class Sidebar:
                         id={'type': 'dropdown-quantity','index': 1},
                         options=quantity_options(self.dataset[self.series_n-1],single=True if self.dimension=='single' else False),
                         clearable=False,
-                        searchable=True,
+                        searchable=False,
                         value=self.quantity,
                         optionHeight=75,
                         maxHeight=380,

@@ -17,6 +17,7 @@ units = {'BE': 'MeV', 'OneNSE': 'MeV', 'OnePSE': 'MeV', 'TwoNSE': 'MeV', 'TwoPSE
         "QDB4n": "", "QDB4p": "", "FermiN": "MeV","FermiP": "MeV", "PEn": "MeV", "PEp": "MeV", "PGn": "MeV", "PGp": "MeV",\
         "CPn": "MeV", "CPp": "MeV", "RMSradT": "fm", "RMSradN": "fm", "RMSradP": "fm", "MRadN": "fm", "MRadP": "fm",\
         "ChRad": "fm", "NSkin": "fm", "QMQ2t": "fm\u00B2", "QMQ2n": "fm\u00B2", "QMQ2p": "fm\u00B2",}
+
 def cb(colorbar, filtered=None, maxz=None):
     if(colorbar == 'linear'):
         return [
@@ -42,7 +43,7 @@ def cb(colorbar, filtered=None, maxz=None):
             [.625, 'rgb(75, 0, 0)'], #dark red
             [.75, 'rgb(139, 69, 19)'], #brown
             [.875, 'rgb(100, 100, 100)'], #gray
-            [1, 'rgb(0, 0, 0)'], #black
+            [1, 'rgb(200, 200, 200)'], #light gray
         ]
     elif(colorbar == 'equal'):
         equalized_color = filtered[filtered>=0]
@@ -264,17 +265,17 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         maxz=float(max(filtered))
         # maxz=float(np.percentile(filtered, [97]))
         
-    result = []
-    for row in vals_arr2d:
-        new_row = []
-        for value in row:
-            if value is None or value >= 0:
-                new_row.append(None)
-            else:
-                new_row.append(-1)
-        result.append(new_row)
-    negatives = np.array(result)
-    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
+    # result = []
+    # for row in vals_arr2d:
+    #     new_row = []
+    #     for value in row:
+    #         if value is None or value >= 0:
+    #             new_row.append(None)
+    #         else:
+    #             new_row.append(-1)
+    #     result.append(new_row)
+    # negatives = np.array(result)
+    # estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
     # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
     traces = [
         go.Heatmap(
@@ -288,18 +289,18 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         ),
     ]
     layout = go.Layout(
-            title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), font={"color": "#a5b1cd"},
+            title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), 
+            font={"color": "#a5b1cd"},
             xaxis=dict(title=dict(text="Neutrons", font=dict(size=12)), gridcolor=grid_color, showline=True,  
             showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False,
             range=[0,156]),
             yaxis=dict(title=dict(text="Protons", font=dict(size=12)), gridcolor=grid_color, showline=True,   
             showgrid=True, gridwidth=1, minor=dict(showgrid=True, gridcolor=minor_grid_color,), mirror='ticks', zeroline=False, 
             range=[0,104]), #uirevision=model, width=600, height=440
-            plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
-            yaxis_scaleanchor="x",     
+            plot_bgcolor="#282b38", paper_bgcolor="#282b38", yaxis_scaleanchor="x",
     )
     fig = go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
-    fig.add_annotation(x=1.138,y=-0.048,text='★',showarrow=False,font=dict(color='white', size=12),xref='paper',yref='paper')
+    # fig.add_annotation(x=1.138,y=-0.048,text='★',showarrow=False,font=dict(color='white', size=12),xref='paper',yref='paper')
     xran, yran = fig.layout.xaxis.range, fig.layout.yaxis.range
     for t in [2, 5, 10, 20, 50, 100]:
         try:

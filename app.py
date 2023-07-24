@@ -45,7 +45,7 @@ app.layout = html.Div(
         dcc.Location(id='url', refresh=False),
         WindowBreakpoints(
             id="breakpoints",
-            widthBreakpointThresholdsPx=[800, 1700],
+            widthBreakpointThresholdsPx=[950, 1700],
             widthBreakpointNames=["sm", "md", "lg"],
         ),
         html.Div(
@@ -646,10 +646,13 @@ def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views
             "grid-template-rows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
             for i in range(len(views_list)):
                 graph_styles.append({"grid-area": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
-                                     "width": '27vw', "height": '19.8vw'})
+                                     "width": '27vw', "height": '21vw'})
+        elif breakpoint_name == "sm":
+            style = {"display": 'flex', "width": '100%'}
+            graph_styles = [{"width": '96vw', "height": '80vw'} for i in range(len(views_list))]
         else:
             style = {"display": 'flex', "width": '100%'}
-            graph_styles = [{"width": '48vw', "height": '35.75vw'} for i in range(len(views_list))]
+            graph_styles = [{"width": '48vw', "height": '37vw'} for i in range(len(views_list))]
         output = []
         for i in range(len(views_list)): # iterate through dicts in list
             view = View(views_list[i], i+1)
