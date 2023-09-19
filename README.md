@@ -8,4 +8,4 @@ The Bayesian Mass Explorer project, widely, aims to provide a user-friendly inte
 
 [![Docker](https://github.com/massexplorer/bmex-masses/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/massexplorer/bmex-masses/actions/workflows/docker-publish.yml)
 
-BMEX Masses is a web app under the Bayesian Mass Explorer project designed to display binding energies and accomponying mass filters across experimental data and theoretical model predictions. 
+BMEX Masses is a web app under the Bayesian Mass Explorer project designed to display binding energies and accompanying mass filters across experimental data and theoretical model predictions. 
