@@ -4,8 +4,7 @@ The Bayesian Mass Explorer project, widely, aims to provide a user-friendly inte
 
 ## BMEX Masses
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=beta&repo=419487170)
-(Update this link)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/massexplorer/bmex-masses)
 
 [![Docker](https://github.com/massexplorer/bmex-masses/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/massexplorer/bmex-masses/actions/workflows/docker-publish.yml)
 
