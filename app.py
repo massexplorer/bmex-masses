@@ -63,7 +63,7 @@ app.layout = html.Div(
                     children=[
                         html.Img(src=app.get_asset_url("Submit-Issues.png"), id="issues-img")
                     ],
-                    href="https://github.com/massexplorer/bmex-web/issues/new",             
+                    href="https://github.com/massexplorer/bmex-masses/issues/new",             
                 )   
             ]
         ),
