@@ -9,6 +9,8 @@ import base64, io
 import zipfile
 import plotly.io as pio
 import sqlite3 as sl
+import random as rand
+import string
 
 import dash
 from dash import dcc, ALL, html
@@ -100,37 +102,37 @@ def display_page(pathname):
     Input("viewsmemory", "data")
 )
 def link_update(views):   
-    # hash = ''.join(rand.choices(string.ascii_letters, k=6))
-    # return "https://beta.bmex.dev/masses/"+hash
-    cur_views = json.loads(views)
-    return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode( json.dumps( [list(cur_views[i].values()) for i in range(len(cur_views))] ).encode()).decode()
+    hash = ''.join(rand.choices(string.ascii_letters, k=6))
+    return "https://beta.bmex.dev/masses/"+hash
+    # cur_views = json.loads(views)
+    # return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode( json.dumps( [list(cur_views[i].values()) for i in range(len(cur_views))] ).encode()).decode()
     # return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode(views.encode()).decode()
 
-# @app.callback(
-#     Output("placeholder", "hidden"),
-#     State("clipboard", "content"),
-#     State("viewsmemory", "data"),
-#     Input("clipboard", "n_clicks"),  
-#     prevent_initial_call=True, 
-# )
-# def hash_store(link, views, clicks):
-#     try:
-#         hash = link.split("masses/")[1]
-#     except:
-#         raise PreventUpdate
-#     con = sl.connect('view_hashes.db')
-#     with con:
-#         try:
-#             con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
-#         except:
-#             con.execute("""
-#                 CREATE TABLE hashes (
-#                     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-#                     hash TEXT,
-#                     info TEXT
-#                 );
-#             """)
-#             con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+@app.callback(
+    Output("placeholder", "hidden"),
+    State("clipboard", "content"),
+    State("viewsmemory", "data"),
+    Input("clipboard", "n_clicks"),  
+    prevent_initial_call=True, 
+)
+def hash_store(link, views, clicks):
+    try:
+        hash = link.split("masses/")[1]
+    except:
+        raise PreventUpdate
+    con = sl.connect('bmex-db/views-db.sql')
+    with con:
+        try:
+            con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+        except:
+            con.execute("""
+                CREATE TABLE hashes (
+                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    hash TEXT,
+                    info TEXT
+                );
+            """)
+            con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
 
 
 @app.callback(
@@ -285,37 +287,37 @@ def main_update(
 
     #url
     if "url-store" == dash.callback_context.triggered_id:
-        if(len(url)>10):
-            loaded_list = json.loads(base64.urlsafe_b64decode(url[8:].encode()).decode())
-            loaded_views = [{} for i in range(len(loaded_list))]
-            for j in range(len(loaded_list)):
-                for key, k in zip(default, range(len(default))):
-                    loaded_views[j][key] = loaded_list[j][k]
-            new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
-            if len(new_tabs)<4:
-                new_tabs.append(dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected'))
-            return  [
-                json.dumps(loaded_views), 
-                new_tabs,
-                json.dumps('update'),
-                tab_n,
-                Sidebar(loaded_views[n-1], 1, len(new_tabs)).show(),
-                ['1'],
-                []
-            ]
         # if(len(url)>10):
-        #     con = sl.connect('view_hashes.db')
-        #     hash = url[8:]
-        #     with con:
-        #         loaded_views = json.loads(list(con.execute("SELECT info FROM hashes WHERE hash == (?)", (hash,)))[0][0])
+        #     loaded_list = json.loads(base64.urlsafe_b64decode(url[8:].encode()).decode())
+        #     loaded_views = [{} for i in range(len(loaded_list))]
+        #     for j in range(len(loaded_list)):
+        #         for key, k in zip(default, range(len(default))):
+        #             loaded_views[j][key] = loaded_list[j][k]
         #     new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
+        #     if len(new_tabs)<4:
+        #         new_tabs.append(dcc.Tab(label='+', value='tab0', className='custom-tab', selected_className='custom-tab--selected'))
         #     return  [
         #         json.dumps(loaded_views), 
         #         new_tabs,
         #         json.dumps('update'),
         #         tab_n,
-        #         Sidebar(loaded_views[n-1]).show(), 
+        #         Sidebar(loaded_views[n-1], 1, len(new_tabs)).show(),
+        #         ['1'],
+        #         []
         #     ]
+        if(len(url)>10):
+            con = sl.connect('bmex-db/views-db.sql')
+            hash = url[8:]
+            with con:
+                loaded_views = json.loads(list(con.execute("SELECT info FROM hashes WHERE hash == (?)", (hash,)))[0][0])
+            new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
+            return  [
+                json.dumps(loaded_views), 
+                new_tabs,
+                json.dumps('update'),
+                tab_n,
+                Sidebar(loaded_views[n-1]).show(), 
+            ]
         else:
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
             if len(new_tabs)<4:
