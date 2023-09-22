@@ -26,15 +26,22 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False):
     df = pd.read_hdf(db, model)
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
-    df = df.dropna(subset=[quan+Wstring[W]])
+    df = df.dropna(subset=[quan])
     if SPSadj=='N':
-        df[quan+Wstring[W]] = df[quan+Wstring[W]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[0]] = df[quan+Wstring[0]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[1]] = df[quan+Wstring[1]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[2]] = df[quan+Wstring[2]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
     elif SPSadj=='P':
-        df[quan+Wstring[W]] = df[quan+Wstring[W]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 - (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[0]] = df[quan+Wstring[0]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 - (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[1]] = df[quan+Wstring[1]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 - (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
+        df[quan+Wstring[2]] = df[quan+Wstring[2]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 - (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
     arr2d = np.full((int(max(df['Z'])//step+1),int(max(df['N'])//step+1)), None)
     for rowi in df.index:
         try:
-            arr2d[int(df.loc[rowi,'Z']//step), int(df.loc[rowi,'N']//step)] = np.round(df.loc[rowi,quan+Wstring[W]], 6)
+            if W==3:
+                arr2d[int(df.loc[rowi,'Z']//step), int(df.loc[rowi,'N']//step)] = np.round((df.loc[rowi,quan+Wstring[1]]+df.loc[rowi,quan+Wstring[2]])/2, 6)
+            else:
+                arr2d[int(df.loc[rowi,'Z']//step), int(df.loc[rowi,'N']//step)] = np.round(df.loc[rowi,quan+Wstring[W]], 6)
         except:
             continue
     if model=='AME2020':
@@ -55,25 +62,49 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False):
 def IsotopicChain(Z,model,quan,W=0):
     df = pd.read_hdf(db, model)
     df = df[df["Z"]==Z]
-    df = df.dropna(subset=[quan+Wstring[W]])
+    df = df.dropna(subset=[quan])
     if model=='AME2020':
+        if W == 3:
+            newdf = df.loc[:, ["N", quan+Wstring[1], "u"+quan, 'e'+quan]]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return df
         return df.loc[:, ["N", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if W == 3:
+        newdf = df.loc[:, ["N", quan+Wstring[W]]]
+        newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+        return df
     return df.loc[:, ["N", quan+Wstring[W]]]
 
 def IsotonicChain(N,model,quan,W=0):
     df = pd.read_hdf(db, model)
     df = df[df["N"]==N]
-    df = df.dropna(subset=[quan+Wstring[W]])
+    df = df.dropna(subset=[quan])
     if model=='AME2020':
+        if W == 3:
+            newdf = df.loc[:, ["Z", quan+Wstring[1], "u"+quan, 'e'+quan]]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return df
         return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if W == 3:
+        newdf = df.loc[:, ["Z", quan+Wstring[W]]]
+        newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+        return df
     return df.loc[:, ["Z", quan+Wstring[W]]]
 
 def IsobaricChain(A,model,quan,W=0):
     df = pd.read_hdf(db, model)
     df = df[df["Z"]+df["N"]==A]
-    df = df.dropna(subset=[quan+Wstring[W]])
+    df = df.dropna(subset=[quan])
     if model=='AME2020':
+        if W == 3:
+            newdf = df.loc[:, ["Z", quan+Wstring[1], "u"+quan, 'e'+quan]]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return df
         return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if W == 3:
+        newdf = df.loc[:, ["Z", quan+Wstring[W]]]
+        newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+        return df
     return df.loc[:, ["Z", quan+Wstring[W]]]
 
 def OutputString(quantity):
@@ -89,8 +120,8 @@ def OutputString(quantity):
         "DoubleMDiff": "Double Mass Difference",
         "N3PointOED": "Neutron 3-Point Odd-Even Binding Energy Difference",
         "P3PointOED": "Proton 3-Point Odd-Even Binding Energy Difference",
-        "SNESplitting": "Single Neutron Energy Splitting",
-        "SPESplitting": "Single Proton Energy Splitting",
+        "SNESplitting": "Single-Neutron Shell Gap",
+        "SPESplitting": "Single-Proton Shell Gap",
         "WignerEC": "Wigner Energy Coefficient",
         "BEperA": "Binding Energy per Nucleon",
         "QDB2t": "Quadrupole Deformation Beta2",

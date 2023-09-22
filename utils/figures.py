@@ -119,7 +119,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         if even_even:
             df = df[df['N']%2==0]
         neutrons = df['N']
-        output = df[quantity+Wstring[wigner[i]]]
+        output = df[quantity+Wstring[1 if wigner[i]==3 else wigner[i]]]
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
@@ -159,7 +159,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
-        output = df[quantity+Wstring[wigner[i]]]
+        output = df[quantity+Wstring[1 if wigner[i]==3 else wigner[i]]]
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
@@ -200,7 +200,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
-        output = df[quantity+Wstring[wigner[i]]]
+        output = df[quantity+Wstring[1 if wigner[i]==3 else wigner[i]]]
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
@@ -226,7 +226,7 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
 
-def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False, uncertainties=False, SPSadj=False):
+def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False):
     W = wigner[0]
     model = model[0]
     step=1
@@ -265,17 +265,17 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         maxz=float(max(filtered))
         # maxz=float(np.percentile(filtered, [97]))
         
-    # result = []
-    # for row in vals_arr2d:
-    #     new_row = []
-    #     for value in row:
-    #         if value is None or value >= 0:
-    #             new_row.append(None)
-    #         else:
-    #             new_row.append(-1)
-    #     result.append(new_row)
-    # negatives = np.array(result)
-    # estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
+    result = []
+    for row in vals_arr2d:
+        new_row = []
+        for value in row:
+            if value is None or value >= 0:
+                new_row.append(None)
+            else:
+                new_row.append(-1)
+        result.append(new_row)
+    negatives = np.array(result)
+    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
     # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
     traces = [
         go.Heatmap(
@@ -284,7 +284,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             colorbar=dict(title=units[quantity]), 
             customdata=combined_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
-            text=estimated, texttemplate="%{text}", 
+            text=estimated, texttemplate="%{text}", textfont=dict(color='black'),
             # textfont=dict(size=4, color='cyan'),
         ),
     ]
@@ -313,7 +313,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
     return fig
 
 
-def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range=[None, None], even_even=False):
+def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False):
     W = wigner[0]
     model = model[0]
     layout = go.Layout(
@@ -380,7 +380,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     traces = [go.Heatmap(
         x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-step/2, vals_arr2d.shape[1]*step, step),
         z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar, filtered, maxz), colorbar=dict(title=units[quantity]), \
-        customdata=combined_str, text=estimated, texttemplate="%{text}",
+        customdata=combined_str, text=estimated, texttemplate="%{text}", textfont=dict(color='black'),
         hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
     )]
 
