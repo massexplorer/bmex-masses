@@ -124,10 +124,10 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype=str)
+            markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
-            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
-            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
+            est_str[markers==False], est_str[markers==True] = '', 'Estimated'
+            markers[markers==False], markers[markers==True] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
             # Create a hidden scatter trace with circles for the legend
@@ -164,10 +164,10 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype=str)
+            markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
-            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
-            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
+            est_str[markers==False], est_str[markers==True] = '', 'Estimated'
+            markers[markers==False], markers[markers==True] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
             # Create a hidden scatter trace with circles for the legend
@@ -205,10 +205,10 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         est_str = np.full(len(protons), '')
         markers = 'circle'
         if model[i]=='AME2020':
-            markers = np.array(df['e'+quantity], dtype=str)
+            markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
-            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
-            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
+            est_str[markers==False], est_str[markers==True] = '', 'Estimated'
+            markers[markers==False], markers[markers==True] = 'circle', 'star'
             if uncertainties[i]:
                 error_dict = dict(type='data',array=df['u'+quantity],visible=True)
             # Create a hidden scatter trace with circles for the legend

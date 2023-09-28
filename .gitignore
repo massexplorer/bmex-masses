@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # hash database
-view_hashes.db
+bmex-db/views-db.sql

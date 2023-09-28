@@ -120,19 +120,20 @@ def hash_store(link, views, clicks):
         hash = link.split("masses/")[1]
     except:
         raise PreventUpdate
+
     con = sl.connect('bmex-db/views-db.sql')
+
     with con:
-        try:
-            con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
-        except:
-            con.execute("""
-                CREATE TABLE hashes (
-                    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                    hash TEXT,
-                    info TEXT
-                );
-            """)
-            con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS hashes (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                hash TEXT,
+                info TEXT
+            );
+        """)
+        con.execute("""INSERT INTO hashes (hash, info) VALUES (?,?);""", (hash, views))
+    con.commit()
+    con.close()
 
 
 @app.callback(
@@ -311,12 +312,15 @@ def main_update(
             with con:
                 loaded_views = json.loads(list(con.execute("SELECT info FROM hashes WHERE hash == (?)", (hash,)))[0][0])
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
+            checklist = [str(i+1) for i in range(len(loaded_views))]
             return  [
                 json.dumps(loaded_views), 
                 new_tabs,
                 json.dumps('update'),
                 tab_n,
-                Sidebar(loaded_views[n-1]).show(), 
+                Sidebar(loaded_views[n-1]).show(),
+                checklist,
+                []
             ]
         else:
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
