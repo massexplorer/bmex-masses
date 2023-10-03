@@ -96,8 +96,7 @@ class Sidebar:
             return self.neutron[i]
         return self.nucleon[i]
 
-    def show(self):
-        
+    def show(self):  
         output = [
             drc.Card(id="dimension-card", title='Select a dimensionality of data to analyze', children=[
                 drc.NamedDropdown(
@@ -181,7 +180,7 @@ class Sidebar:
                         drc.NamedDropdown(
                             name="Select Dataset",
                             id={'type': 'dropdown-dataset','index': self.series_n},
-                            options=dataset_options(self.quantity),
+                            options=dataset_options(self.quantity, EXPdiff=self.chain[-4:]=='diff'),
                             clearable=False,
                             searchable=False,
                             value=self.dataset[self.series_n-1],
@@ -217,7 +216,7 @@ class Sidebar:
                         drc.NamedDropdown(
                             name="Select Dataset",
                             id={'type': 'dropdown-dataset','index': self.series_n},
-                            options=dataset_options(self.quantity),
+                            options=dataset_options(self.quantity, EXPdiff=self.dimension[-4:]=='diff'),
                             clearable=False,
                             searchable=False,
                             value=self.dataset[self.series_n-1],

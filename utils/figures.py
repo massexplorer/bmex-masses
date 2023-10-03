@@ -410,13 +410,6 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
-        if model[i]=='AME2020':
-            markers = np.array(master['e'+quantity+'_x'], dtype=str)
-            est_str = markers.copy()
-            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
-            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
-            if uncertainties[i]:
-                error_dict = dict(type='data',array=df['u'+quantity],visible=True)
         traces.append(go.Scatter(
             x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i]),
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
@@ -448,13 +441,6 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
-        if model[i]=='AME2020':
-            markers = np.array(master['e'+quantity+'_x'], dtype=str)
-            est_str = markers.copy()
-            est_str[markers=='0'], est_str[markers=='1'] = '', 'Estimated'
-            markers[markers=='0'], markers[markers=='1'] = 'circle', 'star'
-            if uncertainties[i]:
-                error_dict = dict(type='data',array=df['u'+quantity],visible=True)
         traces.append(go.Scatter(
             x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+str(model[i]), 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 

@@ -1,11 +1,11 @@
 # Dictionary: 
 # Key: quantities ; Value: list of dictionaries with invalid datasets disabled.
-def dataset_options(quan):
+def dataset_options(quan, EXPdiff=False):
     # All Models
     if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA', 'All']:
         opts = \
         [
-            {"label": "AME2020", "value": "AME2020"},
+            {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -26,7 +26,7 @@ def dataset_options(quan):
     elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting']:
         opts = \
         [
-            {"label": "AME2020", "value": "AME2020"},
+            {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
             {"label": "PC1", "value": "PC1", "disabled": True},
@@ -47,7 +47,7 @@ def dataset_options(quan):
     elif quan in ['FermiP', 'FermiN', 'QMQ2p', 'QMQ2n', 'QMQ2t', 'PGp', 'PGn', 'RMSradP', 'RMSradN', 'RMSradT', 'NSkin']:
         opts =  \
         [
-            {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
             {"label": "PC1", "value": "PC1", "disabled": True},
@@ -68,7 +68,7 @@ def dataset_options(quan):
     elif quan in ['CPn', 'CPp', 'PEn', 'PEp', 'QDB4n', 'QDB4p', 'MRadN', 'MRadP']:
         opts =  \
         [
-            {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -89,7 +89,7 @@ def dataset_options(quan):
     elif quan in ['QDB2p', 'QDB2n','ChRad']:
         opts = \
         [
-            {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -110,7 +110,7 @@ def dataset_options(quan):
     elif quan in ['QDB2t',]:
         opts = \
         [
-            {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -131,7 +131,7 @@ def dataset_options(quan):
     elif quan in ['QDB4t']:
         return \
         [
-            {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
             {"label": "PC1", "value": "PC1", "disabled": True},
