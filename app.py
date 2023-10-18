@@ -56,7 +56,7 @@ app.layout = html.Div(
                 html.A(
                     id="logo",
                     children=[
-                        html.Img(src=app.get_asset_url("BMEX-logo-beta.png"), id="logo-img")
+                        html.Img(src=app.get_asset_url("BMEX-logo-3.png"), id="logo-img")
                     ],
                     href="https://bmex.dev",
                 ),
@@ -104,7 +104,7 @@ def display_page(pathname):
 )
 def link_update(views):   
     hash = ''.join(rand.choices(string.ascii_letters, k=6))
-    return "https://beta.bmex.dev/masses/"+hash
+    return "https://masses.bmex.dev/masses/"+hash
     # cur_views = json.loads(views)
     # return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode( json.dumps( [list(cur_views[i].values()) for i in range(len(cur_views))] ).encode()).decode()
     # return "https://beta.bmex.dev/masses/"+base64.urlsafe_b64encode(views.encode()).decode()
