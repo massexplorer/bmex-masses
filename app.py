@@ -27,7 +27,7 @@ from utils.sidebar_class import Sidebar
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False]}
+           "uncertainty": [False], "estimated": [False], "even_even": True}
 
 app = dash.Dash(
     __name__,
@@ -228,6 +228,7 @@ def download(n_clicks, figures, json_cur_views):
         Output("tabs_output", "children"),
         Output("link-view-checklist", "options"),
         Output("link-view-checklist", "value"),
+        Output('even-even-checklist', 'value'),
     ],
     [
         State("viewsmemory", "data"),
@@ -260,6 +261,8 @@ def download(n_clicks, figures, json_cur_views):
         #colorbar-input
         Input({'type': 'cb-input-min', 'index': ALL}, 'value'),
         Input({'type': 'cb-input-max', 'index': ALL}, 'value'),
+        #even-even
+        Input('even-even-checklist', 'value'),
         #dropdowns
         Input({'type': 'dropdown-dimension', 'index': ALL}, 'value'),
         Input({'type': 'dropdown-1D', 'index': ALL}, 'value'),
@@ -274,13 +277,12 @@ def download(n_clicks, figures, json_cur_views):
 )
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, 
-    # link_colorbar, 
     rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, cb_min, cb_max, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
-
+    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
+    
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
-
+    
     n = int(tab_n[3])
     if len(series_tab) == 0:
         series_n = 1
@@ -312,6 +314,10 @@ def main_update(
             hash = url[8:]
             with con:
                 loaded_views = json.loads(list(con.execute("SELECT info FROM hashes WHERE hash == (?)", (hash,)))[0][0])
+                for i in range(len(loaded_views)):
+                    for keys in default:
+                        if keys not in loaded_views[0]:
+                            loaded_views[0][keys] = default[keys]
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
             checklist = [str(i+1) for i in range(len(loaded_views))]
             return  [
@@ -321,7 +327,8 @@ def main_update(
                 tab_n,
                 Sidebar(loaded_views[n-1]).show(),
                 checklist,
-                []
+                [],
+                ['Even-Even Nuclei'] if loaded_views[0]['even_even'] else []
             ]
         else:
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
@@ -335,7 +342,8 @@ def main_update(
                 tab_n,
                 Sidebar(cur_views[n-1], 1, len(new_tabs)).show(),
                 checklist,
-                []
+                [],
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
 
     #main-tabs_change
@@ -361,7 +369,8 @@ def main_update(
             tab_n,
             Sidebar(new_views[n-1], 1, len(new_tabs)).show(),
             checklist,
-            links
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
         ]
 
     #delete_plot
@@ -383,7 +392,8 @@ def main_update(
                 "tab"+str(len(new_views)),
                 Sidebar(new_views[-1], 1, len(new_tabs)).show(),
                 checklist,
-                links
+                links,
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
         else:
             raise PreventUpdate
@@ -398,7 +408,8 @@ def main_update(
             'tab1',
             Sidebar().show(),
             ['1'],
-            []
+            [],
+            ['Even-Even Nuclei']
         ]
 
     # A function that inputs an array of different data types and only keeps the floats
@@ -423,7 +434,24 @@ def main_update(
             tab_n,
             Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
-            links
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+        ]
+    
+    # even_even
+    if "even-even-checklist" == dash.callback_context.triggered_id:
+        for i in range(len(new_views)):
+            new_views[i]['even_even'] = bool(len(even_even))
+        checklist = [str(i+1) for i in range(len(cur_views))]
+        return [
+            json.dumps(new_views),
+            cur_tabs,
+            json.dumps("update"),
+            tab_n,
+            Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
         ]
 
     try:
@@ -460,7 +488,8 @@ def main_update(
                 tab_n,
                 Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
                 checklist,
-                links
+                links,
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
         raise PreventUpdate
     
@@ -534,7 +563,8 @@ def main_update(
             tab_n,
             Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
-            links
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
         ]
 
     #delete_series
@@ -556,7 +586,8 @@ def main_update(
                 tab_n,
                 Sidebar(new_views[n-1], series_n-1+math.ceil(abs(series_n-l)/10), len(cur_tabs)).show(),
                 checklist,
-                links
+                links,
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
         else:
             raise PreventUpdate
@@ -579,7 +610,8 @@ def main_update(
                 tab_n,
                 Sidebar(new_views[n-1], "new", len(cur_tabs)).show(),
                 checklist,
-                links
+                links,
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
         return [
             json.dumps(cur_views), 
@@ -588,7 +620,8 @@ def main_update(
             tab_n,
             Sidebar(cur_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
-            links
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
         ]
     
     # Colorbar Input
@@ -629,7 +662,8 @@ def main_update(
         tab_n,
         Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
         checklist,
-        links
+        links,
+        ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
     ]
 
 
@@ -640,11 +674,10 @@ def main_update(
     [
         Input("triggerGraph", "data"),
         Input("breakpoints", "widthBreakpoint"),
-        Input('even-even-checklist', 'value'),
         State("viewsmemory", "data"),  
     ],
 )
-def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views: list):  
+def graph_output(trigger: str, breakpoint_name: str, json_views: list):
     if(dash.callback_context.triggered_id != 'triggerGraph' or json.loads(trigger)=="update"):
         views_list = json.loads(json_views)
         graph_styles = []
@@ -663,7 +696,7 @@ def graph_output(trigger: str, breakpoint_name: str, even_even: list, json_views
         output = []
         for i in range(len(views_list)): # iterate through dicts in list
             view = View(views_list[i], i+1)
-            output.append(view.plot(graph_style=graph_styles[i], even_even=bool(len(even_even))))
+            output.append(view.plot(graph_style=graph_styles[i]))
         return output, style
     raise PreventUpdate
 
