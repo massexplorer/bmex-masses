@@ -14,7 +14,7 @@ import string
 
 import dash
 from dash import dcc, ALL, html
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, MATCH
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash_breakpoints import WindowBreakpoints
@@ -217,6 +217,79 @@ def download(n_clicks, figures, json_cur_views):
                 fig.write_image(buf, format='pdf', engine="kaleido")
                 zf.writestr(filename, buf.getvalue())
     return dcc.send_bytes(write_zip, zip_file_name)
+@app.callback(
+    Output({'type': 'advanced-settings-options', 'index': MATCH}, "style"),
+    Input({'type': 'advanced-toggle-button', 'index': MATCH}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_advanced_settings(n_clicks):
+    if n_clicks % 2 == 1:  # Toggle visibility
+        return {"display": "block"}
+    else:
+        return {"display": "none"}
+
+
+@app.callback(
+    Output({'type': 'graph', 'index': MATCH}, "figure"),
+    Input({'type': 'line-color-picker', 'index': MATCH}, "value"),
+    Input({'type': 'line-width-slider', 'index': MATCH}, "value"),
+    Input({'type': 'line-style-radio', 'index': MATCH}, "value"),
+    State({'type': 'graph', 'index': MATCH}, "figure"),
+    prevent_initial_call=True,
+)
+def update_line_properties(color, line_width, line_style, figure):
+    print("Callback triggered")
+    print(f"Color: {color}, Line Width: {line_width}, Line Style: {line_style}")
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    # Extract the triggered component's ID
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    print(f"Triggered ID: {triggered_id}")
+
+    # Parse the triggered index from the dynamic ID
+    try:
+        triggered_index = eval(triggered_id).get("index")  # Extracts the index from the ID
+    except Exception as e:
+        print(f"Error parsing triggered index: {e}")
+        raise PreventUpdate
+
+    print(f"Triggered Index: {triggered_index}")
+
+    if figure and len(figure.get("data", [])) > triggered_index:
+        trace_to_update = figure["data"][triggered_index]
+
+        print(f"Before Update - Trace: {trace_to_update}")
+
+        # Update line and marker properties
+        if color:
+            trace_to_update.setdefault("line", {}).update({
+                "color": color["hex"],
+                "width": line_width,
+                "dash": line_style,
+            })
+            trace_to_update.setdefault("marker", {}).update({
+                "color": color["hex"],
+                "line": {"color": color["hex"], "width": line_width},  # Sync marker border width with line width
+            })
+
+        print(f"After Update - Trace: {trace_to_update}")
+
+        # Force graph refresh
+        figure["layout"].update({
+            "uirevision": f"{color['hex']}-{line_width}-{line_style}",
+            "showlegend": True,  # Ensure the legend is displayed
+        })
+
+        return figure
+
+    print("Figure data is insufficient or missing required traces.")
+    raise PreventUpdate
+
+
+
 
 
 @app.callback(

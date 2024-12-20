@@ -4,6 +4,9 @@ import dash_bootstrap_components as dbc
 import utils.dash_reusable_components as drc
 from utils.dropdown_options import dataset_options
 from utils.dropdown_options import quantity_options
+import dash_daq as daq
+from dash.dependencies import MATCH
+
 
 
 class Sidebar:
@@ -95,8 +98,12 @@ class Sidebar:
         if self.chain[:8]=='isotonic':
             return self.neutron[i]
         return self.nucleon[i]
+    
+    
 
     def show(self):  
+        index = self.series_n  # Ensure index is passed or calculated properly
+
         output = [
             drc.Card(id="dimension-card", title='Select a dimensionality of data to analyze', children=[
                 drc.NamedDropdown(
@@ -206,6 +213,53 @@ class Sidebar:
                     series_button_card
                 ])
             )
+            output.append(
+            drc.Card(
+                id="advanced-settings-card",
+                title="Advanced Settings",
+                children=[
+                    html.Button(
+                        "Advanced", 
+                        id={'type': 'advanced-toggle-button', 'index': index},                       
+                        className="advanced-button",
+                        style={"color": "#e76f51"}
+                    ),
+                    html.Div(
+                        id={'type': 'advanced-settings-options', 'index': index},
+                        style={"display": "none"},  # Initially hidden
+                        children=[
+                           html.Div(
+                            children=[
+                                html.Label("Line Color", className="advanced-label"),
+                                daq.ColorPicker(
+                                    id={'type': 'line-color-picker', 'index': index},
+                                    value={"hex": "#e76f51"},  # Default color
+                                ),
+                            ],
+                            className="color-picker-container",
+                        ),
+                            drc.NamedSlider(
+                                name="Line Width",
+                                id={'type': 'line-width-slider', 'index': index},
+                                min=1,
+                                max=10,
+                                step=1,
+                                value=2  # Default width
+                            ),
+                            dcc.RadioItems(
+                                id={'type': 'line-style-radio', 'index': index},
+                                options=[
+                                    {"label": "Solid", "value": "solid"},
+                                    {"label": "Dashed", "value": "dash"},
+                                ],
+                                value="solid",  # Default line style
+                                labelStyle={"display": "block"}
+                            ),
+                        ]
+                    )
+                ]
+            )
+        )
         else:
             if self.dimension == 'single':
                 output.append(self.proton_card(self.series_n-1))
