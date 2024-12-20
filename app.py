@@ -241,41 +241,42 @@ def update_line_properties(color, line_width, line_style, figure):
     print("Callback triggered")
     print(f"Color: {color}, Line Width: {line_width}, Line Style: {line_style}")
 
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        raise PreventUpdate
+    if figure and len(figure.get("data", [])) >= 2:
+        # First trace is typically the legend
+        legend_trace = figure["data"][0]
 
-    # Extract the triggered component's ID
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    print(f"Triggered ID: {triggered_id}")
+        # Second trace contains x and y data
+        real_trace = figure["data"][1]
 
-    # Parse the triggered index from the dynamic ID
-    try:
-        triggered_index = eval(triggered_id).get("index")  # Extracts the index from the ID
-    except Exception as e:
-        print(f"Error parsing triggered index: {e}")
-        raise PreventUpdate
+        print(f"Before Update - Legend Trace: {legend_trace}")
+        print(f"Before Update - Real Trace: {real_trace}")
 
-    print(f"Triggered Index: {triggered_index}")
-
-    if figure and len(figure.get("data", [])) > triggered_index:
-        trace_to_update = figure["data"][triggered_index]
-
-        print(f"Before Update - Trace: {trace_to_update}")
-
-        # Update line and marker properties
+        # Update the real trace (second trace with x and y data)
         if color:
-            trace_to_update.setdefault("line", {}).update({
+            real_trace.setdefault("line", {}).update({
                 "color": color["hex"],
                 "width": line_width,
                 "dash": line_style,
             })
-            trace_to_update.setdefault("marker", {}).update({
+            real_trace.setdefault("marker", {}).update({
                 "color": color["hex"],
                 "line": {"color": color["hex"], "width": line_width},  # Sync marker border width with line width
             })
 
-        print(f"After Update - Trace: {trace_to_update}")
+        # Update the legend trace (first trace)
+        if color:
+            legend_trace.setdefault("line", {}).update({
+                "color": color["hex"],
+                "width": line_width,
+                "dash": line_style,  # Ensure line style is reflected in the legend
+            })
+            legend_trace.setdefault("marker", {}).update({
+                "color": color["hex"],
+                "line": {"color": color["hex"], "width": line_width},  # Sync marker border width with line width
+            })
+
+        print(f"After Update - Legend Trace: {legend_trace}")
+        print(f"After Update - Real Trace: {real_trace}")
 
         # Force graph refresh
         figure["layout"].update({
@@ -287,7 +288,6 @@ def update_line_properties(color, line_width, line_style, figure):
 
     print("Figure data is insufficient or missing required traces.")
     raise PreventUpdate
-
 
 
 
