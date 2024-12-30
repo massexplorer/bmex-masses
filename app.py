@@ -13,7 +13,7 @@ import random as rand
 import string
 
 import dash
-from dash import dcc, ALL, html
+from dash import dcc, ALL, html, ctx
 from dash.dependencies import Input, Output, State, MATCH
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
@@ -27,7 +27,7 @@ from utils.sidebar_class import Sidebar
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "line_color": '#e76f51', "line_width": 2, "line_style": 'solid'}
 
 app = dash.Dash(
     __name__,
@@ -71,6 +71,8 @@ app.layout = html.Div(
             ]
         ),
         html.Div(id='page-content'),
+        dcc.Store(id='line-styles-store', data={}),
+        dcc.Store(id='graph-update-store', data={}),  # Separate store for user updates
         dcc.Store(id='intermediate-value'),
         dcc.Store(id='intermediate-colorbar-range'),
         html.P(id='placeholder', hidden=True),
@@ -227,68 +229,7 @@ def toggle_advanced_settings(n_clicks):
         return {"display": "block"}
     else:
         return {"display": "none"}
-
-
-@app.callback(
-    Output({'type': 'graph', 'index': MATCH}, "figure"),
-    Input({'type': 'line-color-picker', 'index': MATCH}, "value"),
-    Input({'type': 'line-width-slider', 'index': MATCH}, "value"),
-    Input({'type': 'line-style-radio', 'index': MATCH}, "value"),
-    State({'type': 'graph', 'index': MATCH}, "figure"),
-    prevent_initial_call=True,
-)
-def update_line_properties(color, line_width, line_style, figure):
-    print("Callback triggered")
-    print(f"Color: {color}, Line Width: {line_width}, Line Style: {line_style}")
-
-    if figure and len(figure.get("data", [])) >= 2:
-        # First trace is typically the legend
-        legend_trace = figure["data"][0]
-
-        # Second trace contains x and y data
-        real_trace = figure["data"][1]
-
-        print(f"Before Update - Legend Trace: {legend_trace}")
-        print(f"Before Update - Real Trace: {real_trace}")
-
-        # Update the real trace (second trace with x and y data)
-        if color:
-            real_trace.setdefault("line", {}).update({
-                "color": color["hex"],
-                "width": line_width,
-                "dash": line_style,
-            })
-            real_trace.setdefault("marker", {}).update({
-                "color": color["hex"],
-                "line": {"color": color["hex"], "width": line_width},  # Sync marker border width with line width
-            })
-
-        # Update the legend trace (first trace)
-        if color:
-            legend_trace.setdefault("line", {}).update({
-                "color": color["hex"],
-                "width": line_width,
-                "dash": line_style,  # Ensure line style is reflected in the legend
-            })
-            legend_trace.setdefault("marker", {}).update({
-                "color": color["hex"],
-                "line": {"color": color["hex"], "width": line_width},  # Sync marker border width with line width
-            })
-
-        print(f"After Update - Legend Trace: {legend_trace}")
-        print(f"After Update - Real Trace: {real_trace}")
-
-        # Force graph refresh
-        figure["layout"].update({
-            "uirevision": f"{color['hex']}-{line_width}-{line_style}",
-            "showlegend": True,  # Ensure the legend is displayed
-        })
-
-        return figure
-
-    print("Figure data is insufficient or missing required traces.")
-    raise PreventUpdate
-
+    
 
 
 
@@ -346,16 +287,32 @@ def update_line_properties(color, line_width, line_style, figure):
         Input({'type': 'input-nucleons', 'index': ALL}, 'value'),
         Input({'type': 'dropdown-colorbar', 'index': ALL}, 'value'),
         Input({'type': 'radio-wigner', 'index': ALL}, 'value'),
+        Input({'type': 'line-color-picker', 'index': ALL}, 'value'),
+        Input({'type': 'line-width-slider', 'index': ALL}, 'value'),
+        Input({'type': 'line-style-radio', 'index': ALL}, 'value'),
     ],
 )
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, 
     rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
+    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner,
+    line_color, line_width, line_style):
     
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
-    
+    # Ensure all views have line properties
+    for view in new_views:
+        view.setdefault('line_color', default['line_color'])
+        view.setdefault('line_width', default['line_width'])
+        view.setdefault('line_style', default['line_style'])
+
+
+
+
+
+    print(f"Triggered ID: {dash.callback_context.triggered_id}")
+
+
     n = int(tab_n[3])
     if len(series_tab) == 0:
         series_n = 1
@@ -686,6 +643,10 @@ def main_update(
                 links,
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
             ]
+        # Ensure line properties persist when switching series tabs
+        cur_views[n-1]['line_color'] = cur_views[n-1].get('line_color', default['line_color'])
+        cur_views[n-1]['line_width'] = cur_views[n-1].get('line_width', default['line_width'])
+        cur_views[n-1]['line_style'] = cur_views[n-1].get('line_style', default['line_style'])
         return [
             json.dumps(cur_views), 
             cur_tabs,
@@ -696,6 +657,7 @@ def main_update(
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
         ]
+    
     
     # Colorbar Input
     if "cb-input-min" == dash.callback_context.triggered_id['type']:
@@ -724,10 +686,41 @@ def main_update(
         new_views[n-1]['colorbar_range'] = [None, None]
     elif "dropdown-dataset" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['dataset'][series_n-1] = dataset[0]
+    elif "line-color-picker" == dash.callback_context.triggered_id['type']:
+    # Use the current tab index (n-1) to update viewsmemory
+        if line_color[0] is not None:  # Ensure a color is provided
+            new_views[n-1]['line_color'] = line_color[0]['hex']  # Extract hex color
+            print(f"Updated line_color for view {n-1}: {new_views[n-1]['line_color']}")
+
+    elif "line-width-slider" == dash.callback_context.triggered_id['type']:
+        # Update line width
+        view_index = dash.callback_context.triggered_id.get('index', 0)
+        if view_index < len(line_width) and line_width[view_index] is not None:
+            new_views[n-1]['line_width'] = line_width[view_index]
+            print(f"Updated line_width for view {n-1}: {new_views[n-1]['line_width']}")
+
+    elif "line-style-radio" == dash.callback_context.triggered_id['type']:
+        # Update line style
+        view_index = dash.callback_context.triggered_id.get('index', 0)
+        if view_index < len(line_style) and line_style[view_index] is not None:
+            new_views[n-1]['line_style'] = line_style[view_index]
+            print(f"Updated line_style for view {n-1}: {new_views[n-1]['line_style']}")
+
+
+
+    
+
     elif "uncertainty-checklist" == dash.callback_context.triggered_id['type']:
         u = bool(len(uncer[0]))
         new_views[n-1]['uncertainty'][series_n-1] = u
     checklist = [str(i+1) for i in range(len(cur_views))]
+
+    print(f"Updated viewsmemory after line_color change: {new_views}")
+
+
+
+
+
     return [
         json.dumps(new_views),
         cur_tabs,
@@ -738,6 +731,8 @@ def main_update(
         links,
         ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
     ]
+
+
 
 
 

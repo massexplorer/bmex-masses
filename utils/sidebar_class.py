@@ -13,8 +13,10 @@ class Sidebar:
     
     def __init__(self, views_dict={"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
-           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False},
+           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False, "line_properties": {"color": "#e76f51","width": 2,"style": "solid"}},
              series_tab=1, maintabs_length=1):
+        self.views_dict = views_dict
+
         for key in views_dict:
             setattr(self, key, views_dict[key])
         if series_tab == "new":
@@ -102,7 +104,7 @@ class Sidebar:
     
 
     def show(self):  
-        index = self.series_n  # Ensure index is passed or calculated properly
+        index = self.series_n 
 
         output = [
             drc.Card(id="dimension-card", title='Select a dimensionality of data to analyze', children=[
@@ -213,6 +215,14 @@ class Sidebar:
                     series_button_card
                 ])
             )
+            if "line_properties" in self.views_dict:
+                line_properties = self.views_dict["line_properties"]
+                line_color = line_properties.get("color", "#e76f51")
+                line_width = line_properties.get("width", 2)
+                line_style = line_properties.get("style", "solid")
+            else:
+                line_color, line_width, line_style = "#e76f51", 2, "solid"
+
             output.append(
             drc.Card(
                 id="advanced-settings-card",
@@ -260,6 +270,7 @@ class Sidebar:
                 ]
             )
         )
+                   
         else:
             if self.dimension == 'single':
                 output.append(self.proton_card(self.series_n-1))
