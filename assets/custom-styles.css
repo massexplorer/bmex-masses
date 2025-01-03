@@ -390,6 +390,19 @@ height: auto; */
     width: 100%; 
 }
 
+.custom-color-picker .daq-colorpicker--light__chromepicker {
+    border-radius: 0% !important; /* Remove the circular shape */
+    background: none !important; /* Make the background transparent */
+    box-shadow: none !important; /* Remove shadow */
+    border: none !important; /* Remove the border */
+    
+}
+
+.sc-brqgnP.cQJXpB.daq-colorpicker--light__container {
+    width: 225px;
+  }
+
+
 /* Tabs
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 

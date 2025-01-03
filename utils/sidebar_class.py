@@ -240,13 +240,13 @@ class Sidebar:
                         children=[
                            html.Div(
                             children=[
-                                html.Label("Line Color", className="advanced-label"),
+                                html.Label("Line Color:", className="advanced-label"),
                                 daq.ColorPicker(
                                     id={'type': 'line-color-picker', 'index': index},
                                     value={"hex": "#e76f51"},  # Default color
+                                    className="custom-color-picker",
                                 ),
                             ],
-                            className="color-picker-container",
                         ),
                             drc.NamedSlider(
                                 name="Line Width",
