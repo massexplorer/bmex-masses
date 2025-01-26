@@ -134,7 +134,8 @@ class Sidebar:
                     )
                 ])
             )
-
+        
+        # Append the quantity dropdown card
         output.append(
             drc.Card(id="quantity-card", title='Select the quantity to be graphed on the selected figure', 
                 children=[
@@ -152,6 +153,29 @@ class Sidebar:
                 ]
             )
         )
+
+        # Append the Beta Decay Type dropdown (hidden by default, dynamically displayed later)
+        output.append(
+            drc.Card(
+                id={"type": "beta-type-card", "index": 1},
+                title="Select Beta Decay Type (only for Beta Q-Value):",
+                children=[
+                    drc.NamedDropdown(
+                        name="Beta Decay Type",
+                        id={'type': 'dropdown-beta-type', 'index': 1},
+                        options=[
+                            {"label": "Beta Minus (β⁻)", "value": "minus"},
+                            {"label": "Beta Plus (β⁺)", "value": "plus"},
+                        ],
+                        clearable=False,
+                        searchable=False,
+                        value="minus",  # Default to Beta Minus
+                    )
+                ],
+                style={"display": "none"}  # Hidden by default
+            )
+        )
+
 
         tabs_component, series_button_card, uncertainty_card = None, None, [None]
         if self.dimension == '1D':

@@ -2,7 +2,7 @@
 # Key: quantities ; Value: list of dictionaries with invalid datasets disabled.
 def dataset_options(quan, EXPdiff=False):
     # All Models
-    if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA', 'All']:
+    if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA', 'BetaQValue', 'ArbitraryQValue', 'All']:
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
@@ -163,6 +163,8 @@ def quantity_options(dataset, single=False):
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)", "disabled": True},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)", "disabled": True},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
+            {"label": "Beta Q-value", "value": "BetaQValue", "title": "Energy released during beta decay (β⁻ or β⁺)"},
+            {"label": "Arbitrary Q-value", "value": "ArbitraryQValue", "title": "Q-value calculated from custom reactants and products."},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},
@@ -206,6 +208,8 @@ def quantity_options(dataset, single=False):
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)"},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)"},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
+            {"label": "Beta Q-value", "value": "BetaQValue", "title": "Energy released during beta decay (β⁻ or β⁺)"},
+            {"label": "Arbitrary Q-value", "value": "ArbitraryQValue", "title": "Q-value calculated from custom reactants and products."},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},

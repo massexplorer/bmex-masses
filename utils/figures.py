@@ -11,7 +11,7 @@ series_colors = ["#e76f51", "#a5b1cd",  "#13c6e9", "#ffc300", "#1eae00", \
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
 grid_color = "#a8a8a8"
 minor_grid_color = "#646464"
-units = {'BE': 'MeV', 'OneNSE': 'MeV', 'OnePSE': 'MeV', 'TwoNSE': 'MeV', 'TwoPSE': 'MeV', 'AlphaSE': 'MeV', 'TwoNSGap': 'MeV',\
+units = {'BE': 'MeV', 'OneNSE': 'MeV', 'OnePSE': 'MeV', 'TwoNSE': 'MeV','BetaQValue': 'MeV', 'ArbitraryQValue': 'MeV', 'TwoPSE': 'MeV', 'AlphaSE': 'MeV', 'TwoNSGap': 'MeV',\
          'TwoPSGap': 'MeV', 'DoubleMDiff': 'MeV', 'N3PointOED': 'MeV', 'P3PointOED': 'MeV', 'SNESplitting': 'MeV',\
          'SPESplitting': 'MeV', 'WignerEC': 'MeV', 'BEperA': 'MeV', "QDB2t": "", "QDB2n": "", "QDB2p": "", "QDB4t": "",\
         "QDB4n": "", "QDB4p": "", "FermiN": "MeV","FermiP": "MeV", "PEn": "MeV", "PEp": "MeV", "PGn": "MeV", "PGp": "MeV",\
@@ -65,16 +65,20 @@ def cb(colorbar, filtered=None, maxz=None):
     elif(colorbar == 'diverging'):
         return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
 
-def single(quantity, model, Z, N, wigner=[0]):
+def single(quantity, model, Z, N, wigner=[0], beta_type=None):
     Z, N, W, model = Z[0], N[0], wigner[0], model[0]
+    
+    if quantity == 'BetaQValue' and beta_type is None:
+        beta_type = "minus"
+    
     if Z==None or N==None:
         return html.P("Please enter a proton and neutron value")
     if quantity == 'All':
         qinput = ['BE', 'OneNSE', 'OnePSE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', \
-                    'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'BEperA']
+                    'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'BEperA', 'BetaQValue']
         output = []
         for qs in qinput:
-            result, uncer, estimated = bmex.QuanValue(Z,N,model,qs,W,uncertainty=True)
+            result, 2, estimated == bmex.QuanValue(Z,N,model,qs,W,uncertainty=True, beta_type=beta_type if qs == 'BetaQValue' else None)
             if type(result) == str:
                 output.append(html.P(result))
             else:
@@ -91,7 +95,7 @@ def single(quantity, model, Z, N, wigner=[0]):
                 
         return html.Div(id="nucleiAll", children=output, style={'font-size':'1vw'})
     else:
-        result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
+        result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True, beta_type=beta_type if quantity == 'BetaQValue' else None)
         try:
             result+"a"
         except:
@@ -226,19 +230,29 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
 
-def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False):
+def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False, beta_type=None):
     W = wigner[0]
     model = model[0]
     step=1
     if even_even:
         step=2
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step, SPSadj)
+    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step, SPSadj, beta_type=beta_type)
     combined_str = np.full_like(vals_arr2d, '')
     if model == 'AME2020':
         estimated = np.where(estimated==1, 'E', '')
         est_str = estimated.copy()
         est_str = np.where(estimated=='E', 'Estimated', '')
         combined_str = est_str.copy()
+
+    if quantity == 'BetaQValue' and uncertainties is not None:
+        uncertainties[uncertainties == np.nan] = ''
+        for ri in range(len(uncertainties)):
+            for ci in range(len(uncertainties[0])):
+                if uncertainties[ri, ci] != '':
+                    uncertainties[ri, ci] = f"\u00B1{str(uncertainties[ri, ci])}"
+        combined_str = np.array([f"{unc}{'<br>' + est if est else ''}" for unc, est in zip(uncertainties.flatten(), est_str.flatten())])
+        combined_str = combined_str.reshape(vals_arr2d.shape)
+
         if quantity == 'BE':
             uncertainties[uncertainties==np.nan] = ''
             for ri in range(len(uncertainties)):
@@ -260,11 +274,12 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         raise Exception
     minz, maxz = colorbar_range[0], colorbar_range[1]
     if minz == None:
-        minz = 0
+        minz = float(min(filtered))
     if maxz == None:
         maxz=float(max(filtered))
         # maxz=float(np.percentile(filtered, [97]))
-        
+    
+     
     result = []
     for row in vals_arr2d:
         new_row = []
@@ -275,7 +290,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
                 new_row.append(-1)
         result.append(new_row)
     negatives = np.array(result)
-    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
+    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else 'E')
     # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
     traces = [
         go.Heatmap(
