@@ -8,32 +8,59 @@ Wstring = {0: '', 1: '_W1', 2: '_W2'}
 # Retrieves single value
 def QuanValue(Z, N, model, quan, W=0, uncertainty=False, beta_type=None):
     df = pd.read_hdf(db, model)
+    print(f"\n🔍 Debug - Available Nuclei in {model} Dataset:")
+    print(df[["Z", "N", "BE"]])  # Only print Z, N, and BE for clarity
+    m_e_c2 = 0.511  # MeV
 
     if quan == "BetaQValue":
-        m_e_c2 = 0.511  # MeV
         try:
-            if beta_type == "minus":  # β⁻ decay
-                current_be = df.loc[(df["N"] == N) & (df["Z"] == Z), "BE"].values[0]
-                descendant_be = df.loc[(df["N"] == N - 1) & (df["Z"] == Z + 1), "BE"].values[0]
-                q_value = current_be - descendant_be - m_e_c2
-            elif beta_type == "plus":  # β⁺ decay
-                current_be = df.loc[(df["N"] == N) & (df["Z"] == Z), "BE"].values[0]
-                descendant_be = df.loc[(df["N"] == N + 1) & (df["Z"] == Z - 1), "BE"].values[0]
-                q_value = current_be - descendant_be - 2 * m_e_c2
+            # Retrieve BE values for the selected nucleus
+            current_be = df.loc[(df["N"] == N) & (df["Z"] == Z), "BE"].values[0]
+            current_be_w1 = df.loc[(df["N"] == N) & (df["Z"] == Z), "BE_W1"].values[0]
+            current_be_w2 = df.loc[(df["N"] == N) & (df["Z"] == Z), "BE_W2"].values[0]
 
-            if model == 'AME2020' and uncertainty:
-                try:
-                    u = np.round(df.loc[(df["N"] == N) & (df["Z"] == Z), 'uBE'].values[0], 6)  # Uncertainty column for BE
-                except KeyError:
-                    u = None  
-                try:
-                    e = df.loc[(df["N"] == N) & (df["Z"] == Z), 'eBE'].values[0]  # Estimated value flag
-                except KeyError:
-                    e = None  # Handle missing estimated data
-                return q_value, u, e  # Return Q-value with uncertainties and estimation flag
+            if beta_type == "minus":  # β⁻ decay
+                descendant = df.loc[(df["N"] == N - 1) & (df["Z"] == Z + 1)]
+                if descendant.empty:
+                    descendant = df.loc[(df["N"] == N - 2) & (df["Z"] == Z + 2)]  # Fallback for even-even
+
+
+            elif beta_type == "plus":  # β⁺ decay
+                descendant = df.loc[(df["N"] == N + 1) & (df["Z"] == Z - 1)]
+                if descendant.empty:
+                    descendant = df.loc[(df["N"] == N + 2) & (df["Z"] == Z - 2)]  # Fallback for even-even
+
+            if not descendant.empty:
+                descendant_be = descendant["BE"].iloc[0]
+                descendant_be_w1 = descendant["BE_W1"].iloc[0]
+                descendant_be_w2 = descendant["BE_W2"].iloc[0]
+
+                q_value = current_be - descendant_be - (m_e_c2 if beta_type == "minus" else 2 * m_e_c2)
+                q_value_w1 = current_be_w1 - descendant_be_w1 - (m_e_c2 if beta_type == "minus" else 2 * m_e_c2)
+                q_value_w2 = current_be_w2 - descendant_be_w2 - (m_e_c2 if beta_type == "minus" else 2 * m_e_c2)
+                # print(f"\n✅ Single value - After Extracting BE:")
+                # print(f"descendant_be = {descendant_be}")
+                # print(f"\n🧮 Q-Value Calculation in single value for Z={Z}, N={N}:")
+                # print(f"Q = {current_be} - {descendant_be} - {m_e_c2}")
+            else:                        
+                q_value = None
+                q_value_w1 = None
+                q_value_w2 = None
+
+
+                # Apply Wigner based on W
+                if W == 1:
+                    return q_value_w1, None, None
+                elif W == 2:
+                    return q_value_w2, None, None
+                elif W == 3:
+                    return (q_value_w1 + q_value_w2) / 2, None, None
+                else:
+                    return q_value, None, None
+
 
         except (KeyError, IndexError):  
-            return f"BetaQValue not computable for N={N} and Z={Z} in the selected model", None, None
+            return f"Beta Q-Value not computable for N={N} and Z={Z} in the selected model", None, None
         
 
         return q_value, None, None
@@ -53,7 +80,7 @@ def QuanValue(Z, N, model, quan, W=0, uncertainty=False, beta_type=None):
         return f"{model} has no {OutputString(quan)} available for Nuclei with N={N} and Z={Z}", None, None
 
 
-def Landscape(model,quan,W=0,step=1,SPSadj=False, beta_type=None, terms=None):
+def Landscape(model,quan,W=0,step=1,SPSadj=False, beta_type=None):
     df = pd.read_hdf(db, model)
     m_e_c2 = 0.511  # MeV
 
@@ -64,24 +91,76 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False, beta_type=None, terms=None):
         beta_q_values = []
         uncertainties = [] 
         estimated = [] 
+        beta_q_values_w1 = []
+        beta_q_values_w2 = []
+    
 
         for _, row in df.iterrows():
             Z, N = row["Z"], row["N"]
             try:
                 current_be = row["BE"]
-                if beta_type == "minus":  # β⁻ decay
-                    descendant_be = df.loc[(df["N"] == N - 1) & (df["Z"] == Z + 1), "BE"].values[0]
-                    q_value = current_be - descendant_be - m_e_c2
-                elif beta_type == "plus":  # β⁺ decay
-                    descendant_be = df.loc[(df["N"] == N + 1) & (df["Z"] == Z - 1), "BE"].values[0]
-                    q_value = current_be - descendant_be - 2 * m_e_c2
-                else:
-                    raise ValueError(f"Invalid beta_type: {beta_type}. Must be 'minus' or 'plus'.")
+                current_be_w1 = row["BE_W1"]  # Use Wigner 1 BE
+                current_be_w2 = row["BE_W2"]  # Use Wigner 2 BE
+
+                if beta_type == "minus":
+                    # Primary descendant (Z+1, N-1)
+                    descendant = df.loc[(df["N"] == N - 1) & (df["Z"] == Z + 1)]
+                    if descendant.empty:
+                        # Fallback descendant (Z+2, N-2) for even-even datasets
+                        descendant = df.loc[(df["N"] == N - 2) & (df["Z"] == Z + 2)]  
+                        
+                    if not descendant.empty:
+                        descendant_be = descendant["BE"].iloc[0]
+                        descendant_be_w1 = descendant["BE_W1"].iloc[0]
+                        descendant_be_w2 = descendant["BE_W2"].iloc[0]
+
+                        q_value = current_be - descendant_be - m_e_c2
+                        q_value_w1 = current_be_w1 - descendant_be_w1 - m_e_c2
+                        q_value_w2 = current_be_w2 - descendant_be_w2 - m_e_c2
+
+                        # if Z == 4 and N == 4:
+                        #     print(f"\n✅ Landscape - After Extracting BE:")
+                        #     print(f"descendant_be = {descendant_be}")
+                        #     print(f"\n🧮 Q-Value Calculation in landscape for Z={Z}, N={N}:")
+                        #     print(f"Q = {current_be} - {descendant_be} - {m_e_c2}")
+                    
+                    else:
+                        # If no valid descendant was found, set Q values to None
+                        q_value = None
+                        q_value_w1 = None
+                        q_value_w2 = None
+
+                elif beta_type == "plus":
+                    # Primary descendant (Z-1, N+1)
+                    descendant = df.loc[(df["N"] == N + 1) & (df["Z"] == Z - 1)]
+                    if descendant.empty:
+                        # Fallback descendant (Z-2, N+2) for even-even datasets
+                        descendant = df.loc[(df["N"] == N + 2) & (df["Z"] == Z - 2)]
+
+                    if not descendant.empty:
+                        descendant_be = descendant["BE"].iloc[0]
+                        descendant_be_w1 = descendant["BE_W1"].iloc[0]
+                        descendant_be_w2 = descendant["BE_W2"].iloc[0]
+
+                        q_value = current_be - descendant_be - 2 * m_e_c2
+                        q_value_w1 = current_be_w1 - descendant_be_w1 - 2 * m_e_c2
+                        q_value_w2 = current_be_w2 - descendant_be_w2 - 2 * m_e_c2
+
+                    else:
+                        # If no valid descendant was found, set Q values to None
+                        q_value = None
+                        q_value_w1 = None
+                        q_value_w2 = None
+
             except (KeyError, IndexError):  
                 q_value = None
+                q_value_w1 = None
+                q_value_w2 = None
 
             beta_q_values.append(q_value)
-
+            beta_q_values_w1.append(q_value_w1)
+            beta_q_values_w2.append(q_value_w2)
+            
         # Add uncertainties and estimated flags for AME2020
             if model == 'AME2020':
                 try:
@@ -97,27 +176,24 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False, beta_type=None, terms=None):
                 estimated.append(e)
 
         df["BetaQValue"] = beta_q_values
+        df["BetaQValue_W1"] = beta_q_values_w1
+        df["BetaQValue_W2"] = beta_q_values_w2
+
+        if 4 in df["Z"].values and 4 in df["N"].values:
+            debug_row = df[(df["Z"] == 4) & (df["N"] == 4)]
+            print(f"\n✅ Debug - Final DF Entry for Z=4, N=4 Before Storing in vals_arr2d:\n{debug_row[['BetaQValue', 'BetaQValue_W1', 'BetaQValue_W2']]}")
 
         # Add uncertainty and estimated columns if AME2020
         if model == 'AME2020':
             df["uBetaQValue"] = uncertainties
             df["eBetaQValue"] = estimated
-        
-    if df.empty:
-        raise ValueError("Dataset is empty after BetaQValue computation.")
-    
-
-    df = df[df["N"] % step == 0]
-    df = df[df["Z"] % step == 0]
-
-    if df.empty:
-        raise ValueError("Dataset is empty after filtering.")
+    df = df[df["N"] % 1 == 0]
+    df = df[df["Z"] % 1 == 0]
 
     # Drop rows with missing values for the quantity
     df = df.dropna(subset=[quan])
     if df.empty:
-        raise ValueError("Dataset is empty after dropping rows with missing vlues for the quantity beta minus q value")
-
+        print('DF is empty here')
     if SPSadj=='N':
         df[quan+Wstring[0]] = df[quan+Wstring[0]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
         df[quan+Wstring[1]] = df[quan+Wstring[1]]/(41*(df['N']+df['Z'])**(-1/3)*( 1 + (df['N']-df['Z'])/(3*(df['N']+df['Z']))))
@@ -148,6 +224,7 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False, beta_type=None, terms=None):
             except:
                     pass
         return df, arr2d, uncertainties, estimated
+
     return df, arr2d, None, None
 
 def IsotopicChain(Z,model,quan,W=0, beta_type="minus"):

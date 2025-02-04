@@ -290,7 +290,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
                 new_row.append(-1)
         result.append(new_row)
     negatives = np.array(result)
-    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else 'E')
+    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
     # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
     traces = [
         go.Heatmap(
