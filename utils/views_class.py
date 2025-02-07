@@ -13,8 +13,6 @@ class View:
         self.line_color = my_dict.get('line_color', "#e76f51")
         self.line_width = my_dict.get('line_width', 2)
         self.line_style = my_dict.get('line_style', "solid")
-        print(f"View Initialized: line_color={self.line_color}, line_width={self.line_width}, line_style={self.line_style}")
-
 
     def plot(self, graph_style={}):
         if self.dimension == 'single':
@@ -32,33 +30,16 @@ class View:
                               figure=figs.landscape_diff(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, \
                                                     self.neutron, self.nucleon, self.colorbar_range, self.range, self.even_even))
         elif self.dimension == '1D':
+            #print(f"DEBUG - Passing to isotopic: Color={self.line_color if hasattr(self, 'line_color') else '#e76f51'}")
+            #print(f"DEBUG - View.plot() called for View {self.index} with Color={self.line_color}")
+
             if {'isotopic':self.proton,'isotonic':self.neutron,'isobaric':self.nucleon,'isotopic_diff':self.proton,'isotonic_diff':self.neutron}[self.chain] == None:
                 return html.P('Please Enter a Valid Chain', style={'padding-left': '180px', 'padding-right': '180px'})
             figure = getattr(figs, self.chain)(
             self.quantity, self.dataset, self.colorbar, self.wigner, 
             self.proton, self.neutron, self.nucleon, self.range, 
-            self.uncertainty, self.even_even
-        )
-            # Update all traces
-        for i, trace in enumerate(figure['data']):
-            # First trace (legend/marker only)
-            if i % 2 == 0: 
-                if "marker" in trace:
-                    trace["marker"]["color"] = self.line_color  # Match the line color
-                    trace["marker"]["size"] = 7
-
-            # Second trace (actual data)
-            if i % 2 == 1:  
-                if "line" not in trace:
-                    trace["line"] = {}
-                trace["line"]["color"] = self.line_color
-                trace["line"]["width"] = self.line_width
-                trace["line"]["dash"] = self.line_style
-                if "marker" in trace:
-                    trace["marker"]["color"] = self.line_color
-
-        # Ensure the graph fully redraws
-        figure["layout"]["uirevision"] = None
+            self.uncertainty, self.even_even, self.line_color, self.line_width, self.line_style)
+            #print(f"DEBUG - View.plot() returning a figure with Color={self.line_color}")
 
         return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style, 
                              figure=getattr(figs, self.chain)(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, self.neutron, \

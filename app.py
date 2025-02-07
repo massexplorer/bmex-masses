@@ -300,18 +300,13 @@ def main_update(
     
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
+    #print(f"DEBUG - main_update() triggered by {dash.callback_context.triggered_id}")
+
     # Ensure all views have line properties
     for view in new_views:
         view.setdefault('line_color', default['line_color'])
         view.setdefault('line_width', default['line_width'])
         view.setdefault('line_style', default['line_style'])
-
-
-
-
-
-    print(f"Triggered ID: {dash.callback_context.triggered_id}")
-
 
     n = int(tab_n[3])
     if len(series_tab) == 0:
@@ -688,34 +683,25 @@ def main_update(
         new_views[n-1]['dataset'][series_n-1] = dataset[0]
     elif "line-color-picker" == dash.callback_context.triggered_id['type']:
     # Use the current tab index (n-1) to update viewsmemory
-        if line_color[0] is not None:  # Ensure a color is provided
-            new_views[n-1]['line_color'] = line_color[0]['hex']  # Extract hex color
-            print(f"Updated line_color for view {n-1}: {new_views[n-1]['line_color']}")
+        new_views[n-1]['line_color'] = line_color[0]['hex']  # Extract hex color
 
     elif "line-width-slider" == dash.callback_context.triggered_id['type']:
         # Update line width
         view_index = dash.callback_context.triggered_id.get('index', 0)
         if view_index < len(line_width) and line_width[view_index] is not None:
             new_views[n-1]['line_width'] = line_width[view_index]
-            print(f"Updated line_width for view {n-1}: {new_views[n-1]['line_width']}")
 
     elif "line-style-radio" == dash.callback_context.triggered_id['type']:
         # Update line style
         view_index = dash.callback_context.triggered_id.get('index', 0)
         if view_index < len(line_style) and line_style[view_index] is not None:
             new_views[n-1]['line_style'] = line_style[view_index]
-            print(f"Updated line_style for view {n-1}: {new_views[n-1]['line_style']}")
-
-
-
-    
 
     elif "uncertainty-checklist" == dash.callback_context.triggered_id['type']:
         u = bool(len(uncer[0]))
         new_views[n-1]['uncertainty'][series_n-1] = u
     checklist = [str(i+1) for i in range(len(cur_views))]
 
-    print(f"Updated viewsmemory after line_color change: {new_views}")
 
 
 
@@ -746,6 +732,8 @@ def main_update(
     ],
 )
 def graph_output(trigger: str, breakpoint_name: str, json_views: list):
+    #print(f"DEBUG - graph_output() TRIGGERED by {dash.callback_context.triggered_id} with trigger value {trigger}")
+    
     if(dash.callback_context.triggered_id != 'triggerGraph' or json.loads(trigger)=="update"):
         views_list = json.loads(json_views)
         graph_styles = []

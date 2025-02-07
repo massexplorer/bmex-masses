@@ -5,6 +5,8 @@ import utils.bmex as bmex
 from pickle import dump, load
 import pandas as pd
 from dash import html
+import traceback
+
 
 series_colors = ["#e76f51", "#a5b1cd",  "#13c6e9", "#ffc300", "#1eae00", \
                  "#ff00ff", "#b6e880", "#b366ff", "#e33636", "#ba1160", "#327d80", "#ffffff",]
@@ -104,14 +106,17 @@ def single(quantity, model, Z, N, wigner=[0]):
             return html.P(out_str)
         return html.P(result, style={'font-size':'1vw'})
 
-def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
+def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, line_color="#e76f51", line_width=2, line_style="solid"):
+    traceback.print_stack()  
+    print(f"Trace updating to color {line_color}")
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
         xaxis=dict(title="Neutrons", gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
                    minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
         yaxis=dict(title=quantity+' '+yaxis_unit, gridcolor=grid_color,title_font_size=16, showline=True,mirror='ticks',
-                   minor=dict(showgrid=True, gridcolor=minor_grid_color,)),
+                   minor=dict(showgrid=True, gridcolor=minor_grid_color,))
+
         )
     traces = []
     for i in range(len(Z)):
@@ -137,13 +142,12 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
             ))
         traces.append(go.Scatter(
             x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i]), 
-            marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
-            line={"width": 1}, error_y=error_dict, customdata=est_str,
+            marker={"size": 7, "color": line_color, "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
+            line={"width": 1, "dash": line_style}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
             showlegend=False if model[i]=='AME2020' else True
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
-
 def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
