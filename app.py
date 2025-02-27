@@ -29,7 +29,7 @@ from utils import figures as figs
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_value": 'minus'}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
 
 app = dash.Dash(
     __name__,
@@ -138,7 +138,6 @@ def hash_store(link, views, clicks):
     con.commit()
     con.close()
 
-
 @app.callback(
     Output('confirm', 'displayed'),
     Input({"type": 'delete-button', "index": ALL}, "n_clicks"),
@@ -170,56 +169,6 @@ def display_reset_confirm(reset):
             return True
     except:
         pass
-
-
-
-
-@app.callback(
-    Output({'type': 'beta-type-card', 'index': 1}, 'style'),
-    Input({'type': 'dropdown-quantity', 'index': 1}, 'value'),
-)
-def toggle_beta_type_dropdown(selected_quantity):
-    if selected_quantity == "BetaQValue":
-        return {"display": "block"}  # Show the dropdown
-    return {"display": "none"}  # Hide the dropdown
-
-# @app.callback(
-#     Output('div-graphs', 'children', allow_duplicate=True),  # Graph container
-#     [
-#         Input({'type': 'dropdown-quantity', 'index': 1}, 'value'),  # Main quantity dropdown
-#         Input({'type': 'dropdown-beta-type', 'index': 1}, 'value')  # Beta type dropdown
-#     ],
-#     State('viewsmemory', 'data'),  # Current view state
-#     prevent_initial_call=True  # Prevent initial call
-# )
-# def beta_q_val(selected_quantity, beta_type, viewsmemory):
-#     # Parse the current view settings
-#     views_list = json.loads(viewsmemory)
-#     current_view = views_list[0]  # Assuming single view for simplicity
-
-#     # Determine the appropriate figure to generate
-#     if selected_quantity == "BetaQValue":
-#         # Call landscape with the beta_type for BetaQValue
-#         fig = figs.landscape(
-#             quantity=selected_quantity,
-#             model=current_view['dataset'],
-#             colorbar=current_view['colorbar'],
-#             wigner=current_view['wigner'],
-#             beta_type=beta_type,  # Pass the selected beta type
-#         )
-#     else:
-#         # Call landscape without beta_type for other quantities
-#         fig = figs.landscape(
-#             quantity=selected_quantity,
-#             model=current_view['dataset'],
-#             colorbar=current_view['colorbar'],
-#             wigner=current_view['wigner'],
-#         )
-
-#     # Return the updated graph
-#     return [dcc.Graph(figure=fig)]
-
-
 
 @app.callback(
     Output("download-figs", "data"),
@@ -688,9 +637,15 @@ def main_update(
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
             beta_type
         ]
-    # Update the beta type if the quantity is BetaQValue
-    if quantity[n-1] == "BetaQValue":
-        new_views[n-1]['beta_type'] = beta_type[n-1]  # Add beta_type to the current view
+    if quantity[n-1] in ["BetaMinusDecay", "BetaPlusDecay"]:
+
+            new_views[n-1]['beta_type'] = beta_type[n-1]  # Add beta_type to the current view
+
+    if "dropdown-beta-type" == dash.callback_context.triggered_id['type']:
+
+        new_views[n-1]['quantity'] = 'BetaPlusDecay' if beta_type[0] == 'plus' else 'BetaMinusDecay'
+        new_views[n-1]['beta_type'] = beta_type[n-1]
+
     # Colorbar Input
     if "cb-input-min" == dash.callback_context.triggered_id['type']:
         if len(cb_min) > 0:
@@ -715,7 +670,9 @@ def main_update(
         new_views[n-1]['nucleon'][series_n-1] = nucleons[0]
     elif "dropdown-quantity" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['quantity'] = quantity[0]
-        new_views[n-1]['colorbar_range'] = [None, None]
+        new_views[n-1]['colorbar'] = 'diverging' if quantity[0] in ['BetaMinusDecay', 'BetaPlusDecay', 'AlphaDecayQValue', 'ElectronCaptureQValue'] else 'linear'
+        new_views[n-1]['colorbar_range'] = [None, None]    
+        new_views[n-1]['beta_type'] = 'minus'
     elif "dropdown-dataset" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['dataset'][series_n-1] = dataset[0]
     elif "uncertainty-checklist" == dash.callback_context.triggered_id['type']:
@@ -731,7 +688,7 @@ def main_update(
         checklist,
         links,
         ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-        beta_type
+        [new_views[n-1]['beta_type']]
     ]
 
 

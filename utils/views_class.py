@@ -17,12 +17,12 @@ class View:
 
     def plot(self, graph_style={}):
         if self.dimension == 'single':
-            return figs.single(self.quantity, self.dataset, self.proton, self.neutron, self.wigner, beta_type=self.beta_type if hasattr(self, 'beta_type') else None,)
+            return figs.single(self.quantity, self.dataset, self.proton, self.neutron, self.wigner)
         elif self.dimension == 'landscape':
             # try:
             return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style,
                                 figure=figs.landscape(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, \
-                                                    self.neutron, self.nucleon, self.colorbar_range, self.range, self.even_even, beta_type=self.beta_type if hasattr(self, 'beta_type') else None,),\
+                                                    self.neutron, self.nucleon, self.colorbar_range, self.range, self.even_even),\
                                 relayoutData={'dragmode': 'pan'})
             # except:
             #     return html.P('This particular plot is not available', style={'font-size': 20,'padding-left': '180px', 'padding-right': '180px'})

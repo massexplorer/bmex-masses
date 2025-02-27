@@ -142,7 +142,8 @@ class Sidebar:
                     drc.NamedDropdown(
                         name="Select Quantity",
                         id={'type': 'dropdown-quantity','index': 1},
-                        options=quantity_options(self.dataset[self.series_n-1],single=True if self.dimension=='single' else False),
+                        options=quantity_options(self.dataset[self.series_n-1],single=True if self.dimension=='single' else False,
+                        selected_beta_type=self.beta_type if hasattr(self, 'beta_type') else "minus"),
                         clearable=False,
                         searchable=False,
                         value=self.quantity,
@@ -153,15 +154,12 @@ class Sidebar:
                 ]
             )
         )
-
-        # Append the Beta Decay Type dropdown (hidden by default, dynamically displayed later)
         output.append(
-            drc.Card(
+            html.Div(
                 id={"type": "beta-type-card", "index": 1},
-                title="Select Beta Decay Type (only for Beta Q-Value):",
                 children=[
-                    drc.NamedDropdown(
-                        name="Beta Decay Type",
+                    html.P("Beta Decay Type:"),
+                    dcc.Dropdown(
                         id={'type': 'dropdown-beta-type', 'index': 1},
                         options=[
                             {"label": "Beta Minus (β⁻)", "value": "minus"},
@@ -169,13 +167,12 @@ class Sidebar:
                         ],
                         clearable=False,
                         searchable=False,
-                        value="minus",  # Default to Beta Minus
+                        value="minus" if self.quantity == "BetaMinusDecay" else "plus",
                     )
                 ],
-                style={"display": "none"}  # Hidden by default
+                style={"display": "block"} if self.quantity in ['BetaMinusDecay', 'BetaPlusDecay'] else {"display": "none"}
             )
         )
-
 
         tabs_component, series_button_card, uncertainty_card = None, None, [None]
         if self.dimension == '1D':
