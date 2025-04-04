@@ -63,6 +63,16 @@ def cb(colorbar, filtered=None, maxz=None):
         return  [[0, 'rgb(230, 120, 85)'], [1, 'rgb(255, 255, 255)']]
     elif(colorbar == 'diverging'):
         return  [[0, 'rgb(0, 0, 255)'], [.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
+    elif colorbar == 'inferno':
+        return 'inferno'
+    elif colorbar == 'viridis':
+        return 'viridis' 
+    elif colorbar == 'plasma':
+        return 'plasma'
+    elif colorbar == 'cividis':
+        return 'cividis'
+    elif colorbar == 'magma':
+        return 'magma'
 
 def single(quantity, model, Z, N, wigner=[0]):
     Z, N, W, model = Z[0], N[0], wigner[0], model[0]
