@@ -2,7 +2,7 @@
 # Key: quantities ; Value: list of dictionaries with invalid datasets disabled.
 def dataset_options(quan, EXPdiff=False):
     # All Models
-    if quan in ['BE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA', 'All']:
+    if quan in ['BE','MassExcess', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA','AlphaDecayQValue', 'All']:
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
@@ -23,7 +23,7 @@ def dataset_options(quan, EXPdiff=False):
             {"label": "D1M", "value": "D1M"},
         ]
     # Single Particle (No Covar DFTs)
-    elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting']:
+    elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting', 'BetaMinusDecay','BetaPlusDecay', 'ElectronCaptureQValue']:
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
@@ -154,17 +154,22 @@ def dataset_options(quan, EXPdiff=False):
     return opts
     
 
-def quantity_options(dataset, single=False):
+def quantity_options(dataset, single=False, selected_beta_type="minus"):
+    beta_quantity = "BetaMinusDecay" if selected_beta_type == "minus" else "BetaPlusDecay"
 
     if dataset in ['ME2', 'MEdelta', 'PC1', 'NL3S']:
         opts = \
         [
             {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},
+            {"label": "Mass Excess", "value": "MassExcess", "title": "Difference between the actual mass of a nucleus and its mass number (A) in atomic mass units: \n ME(N,Z) = [Z*mH + N*mn - B(N,Z)] - A*u"},
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)", "disabled": True},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)", "disabled": True},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
+            {"label": "Beta Decay Q-value", "value": beta_quantity, "title": "Energy released during beta decay (β⁻ or β⁺)", "disabled": True},
+            {"label": "Electron Capture Q-value","value": "ElectronCaptureQValue","title": "Energy released during electron capture: \n Qₑc = M(Z,N) - M(Z-1,N+1)", "disabled": True},
+            {"label": "Alpha Decay Q-value", "value": "AlphaDecayQValue", "title": "Energy released during alpha decay: \n Q\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},
             {"label": "Two Proton Shell Gap", "value": "TwoPSGap", "title": "\u03B4\u2082\u209A(N,Z) = S\u2082\u209A(N,Z) - S\u2082\u209A(N,Z+2)"},
             {"label": "Double Mass Difference", "value": "DoubleMDiff", "title": "\u03B4V\u209A\u2099(N,Z) = 1/4 [S\u2082\u209A(N,Z) - S\u2082\u209A(N-2,Z)]"},
@@ -203,11 +208,15 @@ def quantity_options(dataset, single=False):
         opts = \
         [
              {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},
+             {"label": "Mass Excess", "value": "MassExcess", "title": "Difference between the actual mass of a nucleus and its mass number (A) in atomic mass units: \n ME(N,Z) = [Z*mH + N*mn - B(N,Z)] - A*u"},
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)"},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)"},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
+            {"label": "Beta Decay Q-value", "value": beta_quantity, "title": "Energy released during beta decay (β⁻ or β⁺)"},
+            {"label": "Electron Capture Q-value","value": "ElectronCaptureQValue","title": "Energy released during electron capture: \n Qₑc = M(Z,N) - M(Z-1,N+1)"},
+            {"label": "Alpha Decay Q-value", "value": "AlphaDecayQValue", "title": "Energy released during alpha decay: \n Q\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},
             {"label": "Two Proton Shell Gap", "value": "TwoPSGap", "title": "\u03B4\u2082\u209A(N,Z) = S\u2082\u209A(N,Z) - S\u2082\u209A(N,Z+2)"},
             {"label": "Double Mass Difference", "value": "DoubleMDiff", "title": "\u03B4V\u209A\u2099(N,Z) = 1/4 [S\u2082\u209A(N,Z) - S\u2082\u209A(N-2,Z)]"},
@@ -246,11 +255,15 @@ def quantity_options(dataset, single=False):
         opts = \
         [
             {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},
+            {"label": "Mass Excess", "value": "MassExcess", "title": "Difference between the actual mass of a nucleus and its mass number (A) in atomic mass units: \n ME(N,Z) = [Z*mH + N*mn - B(N,Z)] - A*u"},
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)"},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)"},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
+            {"label": "Beta Decay Q-value", "value": beta_quantity, "title": "Energy released during beta decay (β⁻ or β⁺)"},
+            {"label": "Electron Capture Q-value","value": "ElectronCaptureQValue","title": "Energy released during electron capture: \n Qₑc = M(Z,N) - M(Z-1,N+1)"},
+            {"label": "Alpha Decay Q-value", "value": "AlphaDecayQValue", "title": "Energy released during alpha decay: \n Q\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},
             {"label": "Two Proton Shell Gap", "value": "TwoPSGap", "title": "\u03B4\u2082\u209A(N,Z) = S\u2082\u209A(N,Z) - S\u2082\u209A(N,Z+2)"},
             {"label": "Double Mass Difference", "value": "DoubleMDiff", "title": "\u03B4V\u209A\u2099(N,Z) = 1/4 [S\u2082\u209A(N,Z) - S\u2082\u209A(N-2,Z)]"},
@@ -290,11 +303,15 @@ def quantity_options(dataset, single=False):
         opts = \
         [
              {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},
+             {"label": "Mass Excess", "value": "MassExcess", "title": "Difference between the actual mass of a nucleus and its mass number (A) in atomic mass units: \n ME(N,Z) = [Z*mH + N*mn - B(N,Z)] - A*u"},
             {"label": "One Neutron Separation Energy", "value": "OneNSE", "title": "Energy required to remove a neutron: \n S\u2099(N,Z) = B(N,Z) - B(N-1,Z)"},
             {"label": "One Proton Separation Energy", "value": "OnePSE", "title": "Energy required to remove a proton: \n S\u209A(N,Z) = B(N,Z) - B(N,Z-1)"},
             {"label": "Two Neutron Separation Energy", "value": "TwoNSE", "title": "Energy required to remove two neutrons: \n S\u2082\u2099(N,Z) = B(N,Z) - B(N-2,Z)"},
             {"label": "Two Proton Separation Energy", "value": "TwoPSE", "title": "Energy required to remove two protons: \n S\u2082\u209A(N,Z) = B(N,Z) - B(N,Z-2)"},
             {"label": "Alpha Separation Energy", "value": "AlphaSE", "title": "Energy required to remove an alpha particle: \n S\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
+            {"label": "Beta Decay Q-value", "value": beta_quantity, "title": "Energy released during beta decay (β⁻ or β⁺)"},
+            {"label": "Electron Capture Q-value","value": "ElectronCaptureQValue","title": "Energy released during electron capture: \n Qₑc = M(Z,N) - M(Z-1,N+1)"},
+            {"label": "Alpha Decay Q-value", "value": "AlphaDecayQValue", "title": "Energy released during alpha decay: \n Q\u2090 = B(N,Z) - B(N-2,Z-2) - 28.3 MeV"},
             {"label": "Two Neutron Shell Gap", "value": "TwoNSGap", "title": "\u03B4\u2082\u2099(N,Z) = S\u2082\u2099(N,Z) - S\u2082\u2099(N+2,Z)"},
             {"label": "Two Proton Shell Gap", "value": "TwoPSGap", "title": "\u03B4\u2082\u209A(N,Z) = S\u2082\u209A(N,Z) - S\u2082\u209A(N,Z+2)"},
             {"label": "Double Mass Difference", "value": "DoubleMDiff", "title": "\u03B4V\u209A\u2099(N,Z) = 1/4 [S\u2082\u209A(N,Z) - S\u2082\u209A(N-2,Z)]"},

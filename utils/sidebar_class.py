@@ -134,14 +134,16 @@ class Sidebar:
                     )
                 ])
             )
-
+        
+        # Append the quantity dropdown card
         output.append(
             drc.Card(id="quantity-card", title='Select the quantity to be graphed on the selected figure', 
                 children=[
                     drc.NamedDropdown(
                         name="Select Quantity",
                         id={'type': 'dropdown-quantity','index': 1},
-                        options=quantity_options(self.dataset[self.series_n-1],single=True if self.dimension=='single' else False),
+                        options=quantity_options(self.dataset[self.series_n-1],single=True if self.dimension=='single' else False,
+                        selected_beta_type=self.beta_type if hasattr(self, 'beta_type') else "minus"),
                         clearable=False,
                         searchable=False,
                         value=self.quantity,
@@ -150,6 +152,25 @@ class Sidebar:
                         className="quantity-dropdown"                      
                     )
                 ]
+            )
+        )
+        output.append(
+            html.Div(
+                id={"type": "beta-type-card", "index": 1},
+                children=[
+                    html.P("Beta Decay Type:"),
+                    dcc.Dropdown(
+                        id={'type': 'dropdown-beta-type', 'index': 1},
+                        options=[
+                            {"label": "Beta Minus (β⁻)", "value": "minus"},
+                            {"label": "Beta Plus (β⁺)", "value": "plus"},
+                        ],
+                        clearable=False,
+                        searchable=False,
+                        value="minus" if self.quantity == "BetaMinusDecay" else "plus",
+                    )
+                ],
+                style={"display": "block"} if self.quantity in ['BetaMinusDecay', 'BetaPlusDecay'] else {"display": "none"}
             )
         )
 

@@ -1,4 +1,3 @@
-
 import plotly.graph_objs as go
 import numpy as np
 import utils.bmex as bmex
@@ -13,7 +12,7 @@ grid_color = "#a8a8a8"
 minor_grid_color = "#646464"
 units = {'BE': 'MeV', 'OneNSE': 'MeV', 'OnePSE': 'MeV', 'TwoNSE': 'MeV', 'TwoPSE': 'MeV', 'AlphaSE': 'MeV', 'TwoNSGap': 'MeV',\
          'TwoPSGap': 'MeV', 'DoubleMDiff': 'MeV', 'N3PointOED': 'MeV', 'P3PointOED': 'MeV', 'SNESplitting': 'MeV',\
-         'SPESplitting': 'MeV', 'WignerEC': 'MeV', 'BEperA': 'MeV', "QDB2t": "", "QDB2n": "", "QDB2p": "", "QDB4t": "",\
+         'SPESplitting': 'MeV', 'WignerEC': 'MeV', 'BEperA': 'MeV', 'AlphaDecayQValue': 'MeV', "BetaMinusDecay": "MeV", "BetaPlusDecay": "MeV", "MassExcess":"MeV","ElectronCaptureQValue": "MeV", "QDB2t": "", "QDB2n": "", "QDB2p": "", "QDB4t": "",\
         "QDB4n": "", "QDB4p": "", "FermiN": "MeV","FermiP": "MeV", "PEn": "MeV", "PEp": "MeV", "PGn": "MeV", "PGp": "MeV",\
         "CPn": "MeV", "CPp": "MeV", "RMSradT": "fm", "RMSradN": "fm", "RMSradP": "fm", "MRadN": "fm", "MRadP": "fm",\
         "ChRad": "fm", "NSkin": "fm", "QMQ2t": "fm\u00B2", "QMQ2n": "fm\u00B2", "QMQ2p": "fm\u00B2",}
@@ -67,14 +66,16 @@ def cb(colorbar, filtered=None, maxz=None):
 
 def single(quantity, model, Z, N, wigner=[0]):
     Z, N, W, model = Z[0], N[0], wigner[0], model[0]
+    
+        
     if Z==None or N==None:
         return html.P("Please enter a proton and neutron value")
     if quantity == 'All':
         qinput = ['BE', 'OneNSE', 'OnePSE', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', \
-                    'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'BEperA']
+                    'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'BEperA', 'BetaQValue']
         output = []
         for qs in qinput:
-            result, uncer, estimated = bmex.QuanValue(Z,N,model,qs,W,uncertainty=True)
+            result, 2, estimated == bmex.QuanValue(Z,N,model,qs,W,uncertainty=True)
             if type(result) == str:
                 output.append(html.P(result))
             else:
@@ -239,13 +240,14 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         est_str = estimated.copy()
         est_str = np.where(estimated=='E', 'Estimated', '')
         combined_str = est_str.copy()
+
         if quantity == 'BE':
-            uncertainties[uncertainties==np.nan] = ''
-            for ri in range(len(uncertainties)):
-                for ci in range(len(uncertainties[0])):
-                    if uncertainties[ri,ci] != '':
-                        uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
-            combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
+                uncertainties[uncertainties==np.nan] = ''
+                for ri in range(len(uncertainties)):
+                    for ci in range(len(uncertainties[0])):
+                        if uncertainties[ri,ci] != '':
+                            uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
+                combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
 
     filtered = []
     for e in vals_arr2d.flatten():
@@ -260,11 +262,16 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
         raise Exception
     minz, maxz = colorbar_range[0], colorbar_range[1]
     if minz == None:
-        minz = 0
+        minz = float(min(filtered))
     if maxz == None:
         maxz=float(max(filtered))
         # maxz=float(np.percentile(filtered, [97]))
-        
+
+    if quantity in ['BetaMinusDecay', 'BetaPlusDecay', 'AlphaDecayQValue', 'ElectronCaptureQValue']:
+        max_abs_value = max(abs(minz), abs(maxz))
+        minz, maxz = -max_abs_value, max_abs_value
+        colorscale = [[0, 'rgb(0, 0, 255)'], [0.5, 'rgb(255, 255, 255)'], [1, 'rgb(255, 0, 0)']]
+     
     result = []
     for row in vals_arr2d:
         new_row = []
@@ -275,7 +282,12 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
                 new_row.append(-1)
         result.append(new_row)
     negatives = np.array(result)
-    estimated = np.where(negatives==-1,'★', estimated if model == 'AME2020' else '')
+    estimated = np.where(
+    (negatives == -1) & (~np.isin(quantity, ['BetaPlusDecay', 'BetaMinusDecay', 'AlphaDecayQValue', 'ElectronCaptureQValue'])),
+    '★',
+    estimated if model == 'AME2020' else ''
+
+)
     # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
     traces = [
         go.Heatmap(
@@ -347,7 +359,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
 
     combined_str = np.full_like(vals_arr2d, '')
 
-    estimated = np.where(estimated==1, 'E', '')
+    estimated = np.where(estimated==1, 'E', '') if model=='AME2020' else ''
     est_str = estimated.copy()
     est_str = np.where(estimated=='E', 'Estimated', '')
     combined_str = est_str.copy()

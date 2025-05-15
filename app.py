@@ -22,12 +22,14 @@ from dash_breakpoints import WindowBreakpoints
 from utils.bmex_views import *
 from utils.views_class import View
 from utils.sidebar_class import Sidebar
+from utils import figures as figs
+
 
 
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
 
 app = dash.Dash(
     __name__,
@@ -136,7 +138,6 @@ def hash_store(link, views, clicks):
     con.commit()
     con.close()
 
-
 @app.callback(
     Output('confirm', 'displayed'),
     Input({"type": 'delete-button', "index": ALL}, "n_clicks"),
@@ -168,7 +169,6 @@ def display_reset_confirm(reset):
             return True
     except:
         pass
-
 
 @app.callback(
     Output("download-figs", "data"),
@@ -229,6 +229,7 @@ def download(n_clicks, figures, json_cur_views):
         Output("link-view-checklist", "options"),
         Output("link-view-checklist", "value"),
         Output('even-even-checklist', 'value'),
+        Output({'type': 'dropdown-beta-type', 'index': ALL}, 'value')  # Synchronize dropdown value
     ],
     [
         State("viewsmemory", "data"),
@@ -273,12 +274,13 @@ def download(n_clicks, figures, json_cur_views):
         Input({'type': 'input-nucleons', 'index': ALL}, 'value'),
         Input({'type': 'dropdown-colorbar', 'index': ALL}, 'value'),
         Input({'type': 'radio-wigner', 'index': ALL}, 'value'),
+        Input({'type': 'dropdown-beta-type', 'index': ALL}, 'value'),  
     ],
 )
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, 
     rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner):
+    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner, beta_type):
     
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
@@ -328,7 +330,8 @@ def main_update(
                 Sidebar(loaded_views[n-1]).show(),
                 checklist,
                 [],
-                ['Even-Even Nuclei'] if loaded_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if loaded_views[0]['even_even'] else [],
+                beta_type
             ]
         else:
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
@@ -343,7 +346,8 @@ def main_update(
                 Sidebar(cur_views[n-1], 1, len(new_tabs)).show(),
                 checklist,
                 [],
-                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+                beta_type
             ]
 
     #main-tabs_change
@@ -370,7 +374,8 @@ def main_update(
             Sidebar(new_views[n-1], 1, len(new_tabs)).show(),
             checklist,
             links,
-            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_type
         ]
 
     #delete_plot
@@ -393,7 +398,8 @@ def main_update(
                 Sidebar(new_views[-1], 1, len(new_tabs)).show(),
                 checklist,
                 links,
-                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+                beta_type
             ]
         else:
             raise PreventUpdate
@@ -409,7 +415,8 @@ def main_update(
             Sidebar().show(),
             ['1'],
             [],
-            ['Even-Even Nuclei']
+            ['Even-Even Nuclei'],
+            beta_type
         ]
 
     # A function that inputs an array of different data types and only keeps the floats
@@ -435,7 +442,8 @@ def main_update(
             Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
             links,
-            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_type
         ]
     
     # even_even
@@ -451,7 +459,8 @@ def main_update(
             Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
             links,
-            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_type
         ]
 
     try:
@@ -489,7 +498,8 @@ def main_update(
                 Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
                 checklist,
                 links,
-                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+                beta_type
             ]
         raise PreventUpdate
     
@@ -564,7 +574,8 @@ def main_update(
             Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
             links,
-            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_type
         ]
 
     #delete_series
@@ -587,7 +598,8 @@ def main_update(
                 Sidebar(new_views[n-1], series_n-1+math.ceil(abs(series_n-l)/10), len(cur_tabs)).show(),
                 checklist,
                 links,
-                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+                beta_type
             ]
         else:
             raise PreventUpdate
@@ -611,7 +623,8 @@ def main_update(
                 Sidebar(new_views[n-1], "new", len(cur_tabs)).show(),
                 checklist,
                 links,
-                ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+                ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+                beta_type
             ]
         return [
             json.dumps(cur_views), 
@@ -621,9 +634,18 @@ def main_update(
             Sidebar(cur_views[n-1], series_n, len(cur_tabs)).show(),
             checklist,
             links,
-            ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_type
         ]
-    
+    if quantity[n-1] in ["BetaMinusDecay", "BetaPlusDecay"]:
+
+            new_views[n-1]['beta_type'] = beta_type[n-1]  # Add beta_type to the current view
+
+    if "dropdown-beta-type" == dash.callback_context.triggered_id['type']:
+
+        new_views[n-1]['quantity'] = 'BetaPlusDecay' if beta_type[0] == 'plus' else 'BetaMinusDecay'
+        new_views[n-1]['beta_type'] = beta_type[n-1]
+
     # Colorbar Input
     if "cb-input-min" == dash.callback_context.triggered_id['type']:
         if len(cb_min) > 0:
@@ -648,7 +670,9 @@ def main_update(
         new_views[n-1]['nucleon'][series_n-1] = nucleons[0]
     elif "dropdown-quantity" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['quantity'] = quantity[0]
-        new_views[n-1]['colorbar_range'] = [None, None]
+        new_views[n-1]['colorbar'] = 'diverging' if quantity[0] in ['BetaMinusDecay', 'BetaPlusDecay', 'AlphaDecayQValue', 'ElectronCaptureQValue'] else 'linear'
+        new_views[n-1]['colorbar_range'] = [None, None]    
+        new_views[n-1]['beta_type'] = 'minus'
     elif "dropdown-dataset" == dash.callback_context.triggered_id['type']:
         new_views[n-1]['dataset'][series_n-1] = dataset[0]
     elif "uncertainty-checklist" == dash.callback_context.triggered_id['type']:
@@ -663,7 +687,8 @@ def main_update(
         Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
         checklist,
         links,
-        ['Even-Even Nuclei'] if new_views[0]['even_even'] else []
+        ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+        [new_views[n-1]['beta_type']]
     ]
 
 
@@ -678,6 +703,7 @@ def main_update(
     ],
 )
 def graph_output(trigger: str, breakpoint_name: str, json_views: list):
+
     if(dash.callback_context.triggered_id != 'triggerGraph' or json.loads(trigger)=="update"):
         views_list = json.loads(json_views)
         graph_styles = []

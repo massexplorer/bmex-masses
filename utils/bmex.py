@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import math
 
-db = 'data/7-10-23.h5'
+db = 'data/2-27-25.h5'
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
+
+
 
 # Retrieves single value
 def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
@@ -110,11 +112,16 @@ def IsobaricChain(A,model,quan,W=0):
 def OutputString(quantity):
     OutputStringDict = {
         "BE": "Binding Energy",
+        "MassExcess": "Mass Excess",
         "OneNSE": "One Neutron Separation Energy",
         "OnePSE": "One Proton Separation Energy",
         "TwoNSE": "Two Neutron Separation Energy",
         "TwoPSE": "Two Proton Separation Energy",
         "AlphaSE": "Alpha Separation Energy",
+        "BetaMinusDecay": "Beta Minus Decay Q-Value",
+        "BetaPlusDecay": "Beta Plus Decay Q-Value",
+        "ElectronCaptureQValue": "Electron Capture Q-Value",
+        "AlphaDecayQValue": "Alpha Decay Q-Value",
         "TwoPSGap": "Two Proton Shell Gap",
         "TwoNSGap": "Two Neutron Shell Gap",
         "DoubleMDiff": "Double Mass Difference",
@@ -153,5 +160,4 @@ def OutputString(quantity):
         return OutputStringDict[quantity]
     except:
         return "Quantity not found!"
-
 
