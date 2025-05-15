@@ -9,7 +9,7 @@ from utils.dropdown_options import quantity_options
 class Sidebar:
     
     def __init__(self, views_dict={"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
-           "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
+           "colorbar": 'inferno', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False},
              series_tab=1, maintabs_length=1):
         for key in views_dict:
@@ -273,11 +273,16 @@ class Sidebar:
                             name="Colorbar Style",
                             id={'type': 'dropdown-colorbar','index': 1},
                             options=[
+                                {"label": "Plasma", "value": "plasma"},
+                                {"label": "Diverging", "value": "diverging"},
                                 {"label": "Rainbow", "value": "linear"},
+                                {"label": "Magma", "value": "magma"},
+                                {"label": "Cividis", "value": "cividis"},
+                                {"label": "Viridis", "value": "viridis"},
+                                {"label": "Inferno", "value": "inferno"},
                                 {"label": "Extended Rainbow", "value": "extended_linear"},
                                 {"label": "Equalized Rainbow", "value": "equal"},
                                 {"label": "Monochrome", "value": "monochrome"},
-                                {"label": "Diverging", "value": "diverging"},
                             ],
                             clearable=False,
                             searchable=False,
