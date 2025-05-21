@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.9-slim-bullseye
+FROM python:3.13-slim-bookworm
 SHELL ["/bin/bash", "-c"]
 
 RUN mkdir wd
