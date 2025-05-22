@@ -29,7 +29,7 @@ from utils import figures as figs
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus', "show_text": True}
 
 app = dash.Dash(
     __name__,
@@ -218,7 +218,6 @@ def download(n_clicks, figures, json_cur_views):
                 zf.writestr(filename, buf.getvalue())
     return dcc.send_bytes(write_zip, zip_file_name)
 
-
 @app.callback(
     [
         Output("viewsmemory", "data"),
@@ -320,6 +319,10 @@ def main_update(
                     for keys in default:
                         if keys not in loaded_views[0]:
                             loaded_views[0][keys] = default[keys]
+                        for view in loaded_views:
+                            if "show_text" not in view:
+                                view["show_text"] = True
+
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(loaded_views))]
             checklist = [str(i+1) for i in range(len(loaded_views))]
             return  [
@@ -511,26 +514,47 @@ def main_update(
         # Store Relayout Change
         trigger_index = dash.callback_context.triggered_id['index']
         new_data = relayout_data[trigger_index-1]
+
         if new_data == None:
             raise PreventUpdate
         auto = False
         if new_data == {'dragmode': 'pan'} or new_data == {'dragmode': 'zoom'} or 'autosize' in new_data:
             raise PreventUpdate
-        if 'xaxis.autorange' in new_data:
+        if 'xaxis.autorange' in new_data or 'yaxis.autorange' in new_data:
             auto = True
+            # Reset stored ranges
             new_views[trigger_index-1]['range']['x'] = [None, None]
             new_views[trigger_index-1]['range']['y'] = [None, None]
+
+            # Set artificial default numerical ranges for text toggle logic
+            new_xrange = [0, 156]
+            new_yrange = [0, 104]
+
+            show_text = False  # Fully zoomed out → hide text
+            new_views[trigger_index-1]["show_text"] = show_text
+
+            print("Zoom reset. show_text =", show_text)
+
+
         else:
-            try:
-                new_xrange = [float(np.round(new_data['xaxis.range[0]'],3)), float(np.round(new_data['xaxis.range[1]'],3))]
+            new_xrange = cur_views[trigger_index-1]['range']['x']
+            new_yrange = cur_views[trigger_index-1]['range']['y']
+
+            if 'xaxis.range[0]' in new_data and 'xaxis.range[1]' in new_data:
+                new_xrange = [float(np.round(new_data['xaxis.range[0]'], 3)), float(np.round(new_data['xaxis.range[1]'], 3))]
                 new_views[trigger_index-1]['range']['x'] = new_xrange
-            except:
-                new_xrange = cur_views[trigger_index-1]['range']['x']
-            try:
-                new_yrange = [float(np.round(new_data['yaxis.range[0]'],3)), float(np.round(new_data['yaxis.range[1]'],3))]
+
+            if 'yaxis.range[0]' in new_data and 'yaxis.range[1]' in new_data:
+                new_yrange = [float(np.round(new_data['yaxis.range[0]'], 3)), float(np.round(new_data['yaxis.range[1]'], 3))]
                 new_views[trigger_index-1]['range']['y'] = new_yrange
-            except:
-                new_yrange = cur_views[trigger_index-1]['range']['y']
+            zoom_x = new_xrange[1] - new_xrange[0]
+            zoom_y = new_yrange[1] - new_yrange[0]
+            show_text = zoom_x < 60 and zoom_y < 40
+            new_views[trigger_index-1]["show_text"] = show_text
+            print("Zoom change detected. show_text =", show_text)
+
+
+
             
         #Link Views
         if links != None and str(trigger_index) in links:
@@ -566,6 +590,7 @@ def main_update(
                             new_views[int(link)-1]['range']['y'] = new_yrange
 
         checklist = [str(i+1) for i in range(len(cur_views))]
+
         return [
             json.dumps(new_views),
             cur_tabs,

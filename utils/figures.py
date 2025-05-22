@@ -4,6 +4,7 @@ import utils.bmex as bmex
 from pickle import dump, load
 import pandas as pd
 from dash import html
+import periodictable
 
 series_colors = ["#e76f51", "#a5b1cd",  "#13c6e9", "#ffc300", "#1eae00", \
                  "#ff00ff", "#b6e880", "#b366ff", "#e33636", "#ba1160", "#327d80", "#ffffff",]
@@ -227,14 +228,25 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
 
-def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False):
+def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False, show_text=False):
     W = wigner[0]
     model = model[0]
     step=1
     if even_even:
         step=2
     data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step, SPSadj)
+    def get_symbol(z):
+        try:
+            return periodictable.elements[z].symbol
+        except:
+            return ""
+
     combined_str = np.full_like(vals_arr2d, '')
+    for z in range(vals_arr2d.shape[0]):
+        for n in range(vals_arr2d.shape[1]):
+            if vals_arr2d[z, n] is not None:
+                symbol = get_symbol(z)
+
     if model == 'AME2020':
         estimated = np.where(estimated==1, 'E', '')
         est_str = estimated.copy()
@@ -248,6 +260,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
                         if uncertainties[ri,ci] != '':
                             uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
                 combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
+
 
     filtered = []
     for e in vals_arr2d.flatten():
@@ -288,17 +301,38 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
     estimated if model == 'AME2020' else ''
 
 )
-    # vals_arr2d = np.where(negatives==-1, None, vals_arr2d) # Drops Negatives
+    text_array = np.full_like(vals_arr2d, '', dtype=object)
+
+    for z in range(vals_arr2d.shape[0]):
+        for n in range(vals_arr2d.shape[1]):
+            if vals_arr2d[z, n] is not None:
+                if model == 'AME2020' and estimated[z, n] != '':
+                    text_array[z, n] = estimated[z, n]  # E or ★
+                else:
+                    text_array[z, n] = get_symbol(z)
+    texttemplate_val = "%{text}" if show_text else None
+
     traces = [
         go.Heatmap(
-            x=np.arange(0, vals_arr2d.shape[0]*step, step), y=np.arange(-step/2, vals_arr2d.shape[1]*step, step),
-            z=vals_arr2d, zmin=minz, zmax=maxz, name = "", colorscale=cb(colorbar, filtered, maxz), 
-            colorbar=dict(title=units[quantity]), 
-            customdata=combined_str,
-            hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
-            text=estimated, texttemplate="%{text}", textfont=dict(color='black'),
-            # textfont=dict(size=4, color='cyan'),
-        ),
+                x=np.arange(0, vals_arr2d.shape[0]*step, step),
+                y=np.arange(-step/2, vals_arr2d.shape[1]*step, step),
+                z=vals_arr2d,
+                zmin=minz,
+                zmax=maxz,
+                name="",
+                colorscale=cb(colorbar, filtered, maxz),
+                colorbar=dict(title=units[quantity]),
+                customdata=combined_str,
+                text=text_array,
+                hovertemplate='<b>%{text}</b><br>' +
+                            '<b><i>N</i></b>: %{x}<br>' +
+                            '<b><i>Z</i></b>: %{y}<br>' +
+                            '<b><i>Value</i></b>: %{z}<br>' +
+                            '<b>%{customdata}</b>',
+                texttemplate=texttemplate_val,
+                textfont=dict(color='black'),
+            ),
+
     ]
     layout = go.Layout(
             title=dict(text=bmex.OutputString(quantity)+"   |   "+str(model), font=dict(size=15)), 
@@ -312,7 +346,6 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             plot_bgcolor="#282b38", paper_bgcolor="#282b38", yaxis_scaleanchor="x",
     )
     fig = go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
-    # fig.add_annotation(x=1.138,y=-0.048,text='★',showarrow=False,font=dict(color='white', size=12),xref='paper',yref='paper')
     xran, yran = fig.layout.xaxis.range, fig.layout.yaxis.range
     for t in [2, 5, 10, 20, 50, 100]:
         try:

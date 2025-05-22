@@ -22,7 +22,7 @@ class View:
             # try:
             return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style,
                                 figure=figs.landscape(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, \
-                                                    self.neutron, self.nucleon, self.colorbar_range, self.range, self.even_even),\
+                                                    self.neutron, self.nucleon, self.colorbar_range, self.range, self.even_even, show_text=getattr(self, "show_text", True)),\
                                 relayoutData={'dragmode': 'pan'})
             # except:
             #     return html.P('This particular plot is not available', style={'font-size': 20,'padding-left': '180px', 'padding-right': '180px'})
