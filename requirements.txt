@@ -1,0 +1,15 @@
+# Core
+gunicorn>=23.0.0
+dash>=3.0.0
+
+# Additional
+colorlover>=0.3.0
+numpy>=2.0.0
+pandas>=2.0.0
+scipy>=1.15.0
+dash-bootstrap-components>=2.0.0
+plotly>=6.0.0
+tables
+kaleido
+dash_breakpoints
+

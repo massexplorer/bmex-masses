@@ -1,0 +1,7 @@
+version: '3.7'
+services:
+
+  bmex:
+    image: bmex:latest
+    ports:
+      - 5000:80

@@ -1,0 +1,29 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+
+  "waitFor": "onCreateCommand",
+  "updateContentCommand": "pip install -r requirements.txt",
+  "postCreateCommand": "",
+  "postAttachCommand": {
+    "server": "python app.py"
+  },
+  "portsAttributes": {
+    "5000": {
+      "label": "Application",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "app.py"
+      ]
+    },
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ]
+    }
+  },
+  "forwardPorts": [5000]
+}
