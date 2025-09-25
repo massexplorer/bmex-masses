@@ -61,13 +61,13 @@ def BMC(quantity, data_source="db"):
     out["Predicted_Lower"] = lower_df["Predicted_Lower"]
     out["Predicted_Upper"] = upper_df["Predicted_Upper"]
     out = out.drop(columns=["Predicted_Median"])
-    coverage_results = bmc.evaluate()
+    # coverage_results = bmc.evaluate()
     with pd.HDFStore(data_source) as store:
         store.put("BayesianModelCombination", out, format="table", data_columns=True)
         store.put("BayesianModelCombination_models", pd.Series(models))
-        store.put("BayesianModelCombination_coverage", pd.Series(coverage_results))
+        # store.put("BayesianModelCombination_coverage", pd.Series(coverage_results))
 
-    return out, models, coverage_results
+    return out, models#, coverage_results
 
 
 
