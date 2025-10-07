@@ -406,6 +406,13 @@ def main_update(
 
     #reset_page
     if "confirm-reset" == dash.callback_context.triggered_id:
+        # Clear BMC results from HDF5
+        import pandas as pd
+        db_path = "data/9-4-25.h5"
+        with pd.HDFStore(db_path) as store:
+            for key in list(store.keys()):
+                if key.startswith("/BayesianModelCombination"):
+                    store.remove(key)
         return [
             json.dumps([default]), 
             [dcc.Tab(label="1", value='tab1', className='custom-tab', selected_className='custom-tab--selected'), 
@@ -729,3 +736,4 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
 # Running the server
 if __name__ == "__main__":
     app.run(debug=True)
+
