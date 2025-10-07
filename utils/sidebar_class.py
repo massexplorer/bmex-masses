@@ -178,7 +178,15 @@ class Sidebar:
         if self.dimension == '1D':
             tabs = []
             for i in range(len(self.dataset)):
-                tabs.append(dcc.Tab(label=self.get_letter()+"="+str(self.get_nucleon_count(i))+" | "+str(self.dataset[i]), value='tab'+str(i+1), className='series-tab', selected_className='series-tab--selected'))
+                dataset_label = self.dataset[i]
+                if dataset_label == "BayesianModelCombination":
+                    dataset_label = "BMC"
+                tabs.append(dcc.Tab(
+                    label=self.get_letter()+"="+str(self.get_nucleon_count(i))+" | "+str(dataset_label),
+                    value='tab'+str(i+1),
+                    className='series-tab',
+                    selected_className='series-tab--selected'
+                ))
             if len(self.dataset) < 9:
                 tabs.append(dcc.Tab(label="+", value='tab0', className='series-tab', selected_className='series-tab--selected'))  
             tabs_component = dcc.Tabs(id={'type': 'series_tabs','index': 1}, value='tab'+str(self.series_n), className='series-tabs', children=tabs)
@@ -311,5 +319,3 @@ class Sidebar:
             )
 
         return output
-
-
