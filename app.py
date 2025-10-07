@@ -27,7 +27,7 @@ from utils import figures as figs
 
 
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
-           "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
+           "colorbar": 'plasma', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
            "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
 
