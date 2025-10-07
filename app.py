@@ -728,4 +728,4 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
 
 # Running the server
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)
