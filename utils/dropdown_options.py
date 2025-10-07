@@ -5,6 +5,7 @@ def dataset_options(quan, EXPdiff=False):
     if quan in ['BE','MassExcess', 'TwoNSE', 'TwoPSE', 'AlphaSE', 'TwoNSGap', 'TwoPSGap', 'DoubleMDiff', 'WignerEC', 'BEperA','AlphaDecayQValue', 'All']:
         opts = \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination"},
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
@@ -26,6 +27,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting', 'BetaMinusDecay','BetaPlusDecay', 'ElectronCaptureQValue']:
         opts = \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination"},
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
@@ -47,6 +49,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['FermiP', 'FermiN', 'QMQ2p', 'QMQ2n', 'QMQ2t', 'PGp', 'PGn', 'RMSradP', 'RMSradN', 'RMSradT', 'NSkin']:
         opts =  \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination", "disabled": True},
             {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
@@ -68,6 +71,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['CPn', 'CPp', 'PEn', 'PEp', 'QDB4n', 'QDB4p', 'MRadN', 'MRadP']:
         opts =  \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination", "disabled": True},
             {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
@@ -89,6 +93,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['QDB2p', 'QDB2n','ChRad']:
         opts = \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination", "disabled": True},
             {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
@@ -110,6 +115,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['QDB2t',]:
         opts = \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination", "disabled": True},
             {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
@@ -131,6 +137,7 @@ def dataset_options(quan, EXPdiff=False):
     elif quan in ['QDB4t']:
         return \
         [
+            {"label": "Bayesian Model Combination", "value": "BayesianModelCombination", "disabled": True},
             {"label": "AME2020", "value": "AME2020", "disabled": True} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
@@ -204,7 +211,7 @@ def quantity_options(dataset, single=False, selected_beta_type="minus"):
             {"label": "Quad Moment Q2 N", "value": "QMQ2n", "disabled": True},
             {"label": "Quad Moment Q2 P", "value": "QMQ2p", "disabled": True},
         ]
-    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M']:
+    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M', 'BayesianModelCombination', 'FRDM12', 'UNEDF0', 'UNEDF1', 'SV', 'SLY4', 'SKP', 'SKMS']:
         opts = \
         [
              {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},
