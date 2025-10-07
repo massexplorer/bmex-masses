@@ -85,7 +85,7 @@ def single(quantity, model, Z, N, wigner=[0]):
                     'DoubleMDiff', 'N3PointOED', 'P3PointOED', 'SNESplitting', 'SPESplitting', 'WignerEC', 'BEperA', 'BetaQValue']
         output = []
         for qs in qinput:
-            result, 2, estimated == bmex.QuanValue(Z,N,model,qs,W,uncertainty=True)
+            result, uncer, estimated = bmex.QuanValue(Z,N,model,qs,W,uncertainty=True)
             if type(result) == str:
                 output.append(html.P(result))
             else:
