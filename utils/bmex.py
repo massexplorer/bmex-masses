@@ -1,15 +1,46 @@
 import numpy as np
 import pandas as pd
 import math
+from utils.bmc import *
 
-db = 'data/2-27-25.h5'
+db = 'data/9-4-25.h5'
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
+
 
 
 
 # Retrieves single value
 def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
-    df = pd.read_hdf(db, model)
+    # if model == 'BayesianModelCombination':
+    #     try:
+    #         df = pd.read_hdf(db, model)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #         #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         if quan not in df.columns:
+    #             out, models = BMC(quan, data_source=db)
+    #             df = out
+    #     except (KeyError, FileNotFoundError):
+    #         out, models = BMC(quan, data_source=db)
+    #         df = out
+    if model == "BayesianModelCombination":
+        key_main = f"BayesianModelCombination_{quan}"
+        key_models = f"{key_main}_models"
+       # key_cov = f"{key_main}_coverage"
+
+        try:
+            # Load cached results for this quantity
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+            # coverage = pd.read_hdf(db, key_cov).tolist()
+        except (KeyError, FileNotFoundError):
+            # If missing, compute with BMC
+            out, models = BMC(quan, data_source=db)
+            with pd.HDFStore(db) as store:
+                store.put(key_main, out)
+                store.put(key_models, pd.Series(models))
+            df = pd.read_hdf(db, key_main)
+    else:
+        df = pd.read_hdf(db, model)
     try:
         if uncertainty and model=='AME2020':
             v = np.round(df[(df["N"]==N) & (df["Z"]==Z)][quan+Wstring[W]].values[0],6)
@@ -20,12 +51,61 @@ def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
                 u = None
             return v, u, e
         else:
-            return np.round(df[(df["N"]==N) & (df["Z"]==Z)][quan].values[0],6), None, None
+            if model == 'BayesianModelCombination':
+                return np.round(df[(df["N"]==N) & (df["Z"]==Z)][quan].values[0],6), models#, coverage
+            else:
+                return np.round(df[(df["N"]==N) & (df["Z"]==Z)][quan].values[0],6), None, None
     except:
-        return str(model)+" has no "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
+        if model == 'BayesianModelCombination':
+            return str(model)+" has no "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), models#, coverage
+        else:
+            return str(model)+" has no "+OutputString(quan)+" available for Nuclei with N="+str(N)+" and Z="+str(Z), None, None
 
 def Landscape(model,quan,W=0,step=1,SPSadj=False):
-    df = pd.read_hdf(db, model)
+    # with pd.HDFStore("data/9-4-25.h5") as store:
+    #     print(store.keys())
+    # with pd.HDFStore(db) as store:
+    #     if "/BayesianModelCombination" in store.keys():
+    #         store.remove("/BayesianModelCombination")
+    #         store.remove("/BayesianModelCombination_models")
+    #         store.remove("/BayesianModelCombination_coverage")
+    # if model == 'BayesianModelCombination':
+    #     try:
+    #         df = pd.read_hdf(db, model)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #         #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #     except (KeyError, FileNotFoundError):
+    #         out, models = BMC(quan, data_source=db)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #         #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         df = out
+    with pd.HDFStore("data/9-4-25.h5") as store:
+        print(store.keys())
+    if model == "BayesianModelCombination":
+        key_main = f"BayesianModelCombination_{quan}"
+        key_models = f"{key_main}_models"
+        #key_cov = f"{key_main}_coverage"
+
+        try:
+            # Try to load cached results for this quantity
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+            # coverage = pd.read_hdf(db, key_cov).tolist()
+        except (KeyError, FileNotFoundError):
+            # If not available, run BMC fresh
+            out, models = BMC(quan, data_source=db)
+
+            # Save results to HDF5
+            with pd.HDFStore(db) as store:
+                store.put(key_main, out)
+                store.put(key_models, pd.Series(models))
+                # store.put(key_cov, pd.Series(coverage))  
+
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+
+    else:
+        df = pd.read_hdf(db, model)
     df = df[df["N"]%step==0]
     df = df[df["Z"]%step==0]
     df = df.dropna(subset=[quan])
@@ -57,20 +137,58 @@ def Landscape(model,quan,W=0,step=1,SPSadj=False):
             try:
                 estimated[df.loc[rowi,'Z']//step, df.loc[rowi,'N']//step] = df.loc[rowi,'e'+quan]
             except:
-                    pass
+                pass
         return df, arr2d, uncertainties, estimated
     return df, arr2d, None, None
 
+
 def IsotopicChain(Z,model,quan,W=0):
-    df = pd.read_hdf(db, model)
+    # if model == 'BayesianModelCombination':
+    #     try:
+    #         df = pd.read_hdf(db, model)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #         #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         if quan not in df.columns:
+    #             out, models = BMC(quan, data_source=db)
+    #             models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #             #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #             df = out
+    #     except (KeyError, FileNotFoundError):
+    #         out, models= BMC(quan, data_source=db)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #         #coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         df = out
+
+    if model == "BayesianModelCombination":
+        key_main   = f"BayesianModelCombination_{quan}"
+        key_models = f"{key_main}_models"
+       # key_cov    = f"{key_main}_coverage"
+
+        try:
+            # Load cached BMC results for this quantity
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+            # coverage = pd.read_hdf(db, key_cov).tolist()
+        except (KeyError, FileNotFoundError):
+            # If missing, compute BMC for this quantity
+            out, models = BMC(quan, data_source=db)
+            with pd.HDFStore(db) as store:
+                store.put(key_main, out)
+                store.put(key_models, pd.Series(models))
+                # store.put(key_cov, pd.Series(coverage))  
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+
+    else:
+        df = pd.read_hdf(db, model)
     df = df[df["Z"]==Z]
     df = df.dropna(subset=[quan])
     if model=='AME2020':
         if W == 3:
             newdf = df.loc[:, ["N", quan+Wstring[1], "u"+quan, 'e'+quan]]
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-            return df
-        return df.loc[:, ["N", quan+Wstring[W], "u"+quan, 'e'+quan]]
+            return df, None, None
+        return df.loc[:, ["N", quan+Wstring[W], "u"+quan, 'e'+quan]], None, None
     if W == 3:
         newdf = df.loc[:, ["N", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
@@ -78,36 +196,98 @@ def IsotopicChain(Z,model,quan,W=0):
     return df.loc[:, ["N", quan+Wstring[W]]]
 
 def IsotonicChain(N,model,quan,W=0):
-    df = pd.read_hdf(db, model)
+    # if model == 'BayesianModelCombination':
+    #     try:
+    #         df = pd.read_hdf(db, model)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #        # coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         if quan not in df.columns:
+    #             out, models= BMC(quan, data_source=db)
+    #             df = out
+    #     except (KeyError, FileNotFoundError):
+    #         out, models = BMC(quan, data_source=db)
+    #         df = out
+    if model == "BayesianModelCombination":
+        key_main   = f"BayesianModelCombination_{quan}"
+        key_models = f"{key_main}_models"
+       # key_cov    = f"{key_main}_coverage"
+
+        try:
+            # Load cached BMC results for this quantity
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+            # coverage = pd.read_hdf(db, key_cov).tolist()
+        except (KeyError, FileNotFoundError):
+            # If missing, compute BMC for this quantity
+            out, models = BMC(quan, data_source=db)
+            with pd.HDFStore(db) as store:
+                store.put(key_main, out)
+                store.put(key_models, pd.Series(models))
+                # store.put(key_cov, pd.Series(coverage))  
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+    else:
+        df = pd.read_hdf(db, model)
     df = df[df["N"]==N]
     df = df.dropna(subset=[quan])
     if model=='AME2020':
         if W == 3:
             newdf = df.loc[:, ["Z", quan+Wstring[1], "u"+quan, 'e'+quan]]
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-            return df
-        return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+            return df, None, None
+        return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]], None, None
     if W == 3:
         newdf = df.loc[:, ["Z", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-        return df
-    return df.loc[:, ["Z", quan+Wstring[W]]]
+        return df, None, None
+    return df.loc[:, ["Z", quan+Wstring[W]]], None, None
 
 def IsobaricChain(A,model,quan,W=0):
-    df = pd.read_hdf(db, model)
+    # if model == 'BayesianModelCombination':
+    #     try:
+    #         df = pd.read_hdf(db, model)
+    #         models = pd.read_hdf(db, "BayesianModelCombination_models").tolist()
+    #        # coverage = pd.read_hdf(db, "BayesianModelCombination_coverage").tolist()
+    #         if quan not in df.columns:
+    #             out, models = BMC(quan, data_source=db)
+    #             df = out
+    #     except (KeyError, FileNotFoundError):
+    #         out, models= BMC(quan, data_source=db)
+    #         df = out
+    if model == "BayesianModelCombination":
+        key_main   = f"BayesianModelCombination_{quan}"
+        key_models = f"{key_main}_models"
+       # key_cov    = f"{key_main}_coverage"
+
+        try:
+            # Load cached BMC results for this quantity
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+            # coverage = pd.read_hdf(db, key_cov).tolist()
+        except (KeyError, FileNotFoundError):
+            # If missing, compute BMC for this quantity
+            out, models = BMC(quan, data_source=db)
+            with pd.HDFStore(db) as store:
+                store.put(key_main, out)
+                store.put(key_models, pd.Series(models))
+                # store.put(key_cov, pd.Series(coverage))  
+            df = pd.read_hdf(db, key_main)
+            models = pd.read_hdf(db, key_models).tolist()
+    else:
+        df = pd.read_hdf(db, model)
     df = df[df["Z"]+df["N"]==A]
     df = df.dropna(subset=[quan])
     if model=='AME2020':
         if W == 3:
             newdf = df.loc[:, ["Z", quan+Wstring[1], "u"+quan, 'e'+quan]]
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-            return df
-        return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+            return df, None, None
+        return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]], None, None
     if W == 3:
         newdf = df.loc[:, ["Z", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-        return df
-    return df.loc[:, ["Z", quan+Wstring[W]]]
+        return df, None, None
+    return df.loc[:, ["Z", quan+Wstring[W]]], None, None
 
 def OutputString(quantity):
     OutputStringDict = {
@@ -160,4 +340,5 @@ def OutputString(quantity):
         return OutputStringDict[quantity]
     except:
         return "Quantity not found!"
+
 

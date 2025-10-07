@@ -92,7 +92,12 @@ def single(quantity, model, Z, N, wigner=[0]):
                 
         return html.Div(id="nucleiAll", children=output, style={'font-size':'1vw'})
     else:
-        result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
+        if model == "AME2020":
+            result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
+        else:
+            result, _ = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
+            uncer = None
+            estimated = None
         try:
             result+"a"
         except:
@@ -116,7 +121,12 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(Z)):
-        df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        result = bmex.IsotopicChain(Z[i], model[i], quantity, wigner[i])
+        if isinstance(result, tuple):
+            df = result[0]
+        else:
+            df = result
+        df = df.sort_values(by=['N'])
         if even_even:
             df = df[df['N']%2==0]
         neutrons = df['N']
@@ -136,8 +146,11 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
                 x=[None],y=[None],name='Z='+str(Z[i])+' | '+str(model[i]), mode='lines+markers',
                 marker=dict(symbol='circle',size=7, color=series_colors[i])
             ))
+        legend_label = str(model[i])
+        if legend_label == "BayesianModelCombination":
+            legend_label = "BMC"
         traces.append(go.Scatter(
-            x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+str(model[i]), 
+            x=neutrons, y=output, mode="lines+markers", name='Z='+str(Z[i])+' | '+legend_label, 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
@@ -156,7 +169,12 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(N)):
-        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        result = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i])
+        if isinstance(result, tuple):
+            df = result[0]
+        else:
+            df = result
+        df = df.sort_values(by=['Z'])
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
@@ -176,8 +194,11 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
                 x=[None],y=[None],name='N='+str(N[i])+' | '+str(model[i]), mode='lines+markers',
                 marker=dict(symbol='circle',size=7, color=series_colors[i])
             ))
+        legend_label = str(model[i])
+        if legend_label == "BayesianModelCombination":
+            legend_label = "BMC"
         traces.append(go.Scatter(
-            x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+str(model[i]), 
+            x=protons, y=output, mode="lines+markers", name='N='+str(N[i])+' | '+legend_label, 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
@@ -197,7 +218,12 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(A)):
-        df = bmex.IsobaricChain(A[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        result = bmex.IsobaricChain(A[i],model[i],quantity,wigner[i])
+        if isinstance(result, tuple):
+            df = result[0]
+        else:
+            df = result
+        df = df.sort_values(by=['Z'])
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
@@ -217,8 +243,11 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
                 x=[None],y=[None],name='A='+str(A[i])+' | '+str(model[i]), mode='lines+markers',
                 marker=dict(symbol='circle',size=7, color=series_colors[i])
             ))
+        legend_label = str(model[i])
+        if legend_label == "BayesianModelCombination":
+            legend_label = "BMC"
         traces.append(go.Scatter(
-            x=protons, y=output, mode="lines+markers", name='A='+str(A[i])+' | '+str(model[i]), 
+            x=protons, y=output, mode="lines+markers", name='A='+str(A[i])+' | '+legend_label, 
             marker={"size": 7, "color": series_colors[i], "symbol": markers, "line": {"width": 0, "color": 'white'}}, 
             line={"width": 1}, error_y=error_dict, customdata=est_str,
             hovertemplate = '<b><i>Z</i></b>: %{x}<br>'+'<b><i>'+quantity+'</i></b>: %{y} MeV<br>'+'<b>%{customdata}</b>',
@@ -366,13 +395,20 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     est_str = np.where(estimated=='E', 'Estimated', '')
     combined_str = est_str.copy()
     if quantity == 'BE':
-        uncertainties[uncertainties==np.nan] = ''
-        for ri in range(len(uncertainties)):
-            for ci in range(len(uncertainties[0])):
-                if uncertainties[ri,ci] != '':
-                    uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
-        combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
-
+        # uncertainties[uncertainties==np.nan] = ''
+        # for ri in range(len(uncertainties)):
+        #     for ci in range(len(uncertainties[0])):
+        #         if uncertainties[ri,ci] != '':
+        #             uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
+        # combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
+        uncertainties_flat = uncertainties.flatten()
+        est_str_flat = est_str.flatten()
+        min_len = min(len(uncertainties_flat), len(est_str_flat))
+        #combined_str = [x + '<br>' + y for x, y in zip(uncertainties_flat[:min_len], est_str_flat[:min_len])]
+        combined_str = [
+            (("" if x is None or str(x) == "nan" else "\u00B1"+str(x)) + '<br>' + (y if y is not None else ""))
+            for x, y in zip(uncertainties_flat[:min_len], est_str_flat[:min_len])
+        ]
     filtered = []
     for e in vals_arr2d.flatten():
         try:
@@ -412,9 +448,21 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
     traces = []
    
     for i in range(len(Z)):
-        exp = bmex.IsotopicChain(Z[i],'AME2020',quantity,wigner[i]).sort_values(by=['N'])
+        #exp = bmex.IsotopicChain(Z[i],'AME2020',quantity,wigner[i]).sort_values(by=['N'])
+        exp_result = bmex.IsotopicChain(Z[i],'AME2020',quantity,wigner[i])
+        if isinstance(exp_result, tuple):
+            exp = exp_result[0]
+        else:
+            exp = exp_result
+        exp = exp.sort_values(by=['N'])
         exp.columns=['N', quantity+'_exp', 'u'+quantity, 'e'+quantity]
         df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        df_result = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i])
+        if isinstance(df_result, tuple):
+            df = df_result[0]
+        else:
+            df = df_result
+        df = df.sort_values(by=['N'])
         master = pd.merge(exp, df, how='inner', on=['N'])
         if even_even:
             master = master[master['N']%2==0]
@@ -443,9 +491,19 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         )
     traces = []
     for i in range(len(N)):
-        exp = bmex.IsotonicChain(N[i],'AME2020',quantity,wigner[i]).sort_values(by=['Z'])
+        result_exp = bmex.IsotonicChain(N[i],'AME2020',quantity,wigner[i])
+        if isinstance(result_exp, tuple):
+            exp = result_exp[0]
+        else:
+            exp = result_exp
+        exp = exp.sort_values(by=['Z'])
         exp.columns=['Z', quantity+'_exp', 'u'+quantity, 'e'+quantity]
-        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        result = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i])
+        if isinstance(result, tuple):
+            df = result[0]
+        else:
+            df = result
+        df = df.sort_values(by=['Z'])
         master = pd.merge(exp, df, how='inner', on=['Z'])
         if even_even:
             master = master[master['Z']%2==0]
