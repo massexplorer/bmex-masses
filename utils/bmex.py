@@ -152,6 +152,7 @@ def IsobaricChain(A,model,quan,W=0):
 def OutputString(quantity):
     OutputStringDict = {
         "BE": "Binding Energy",
+        "BMC": "Bayesian Model Combination",
         "MassExcess": "Mass Excess",
         "OneNSE": "One Neutron Separation Energy",
         "OnePSE": "One Proton Separation Energy",
