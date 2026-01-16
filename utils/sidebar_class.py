@@ -189,7 +189,7 @@ class Sidebar:
             uncer_checklist = []
             if self.uncertainty[self.series_n-1]:
                 uncer_checklist = ['Include Uncertainties']
-            if self.dataset[self.series_n-1] == 'AME2020':
+            if self.dataset[self.series_n-1] == 'AME2020' or self.dataset[self.series_n-1] == 'BMC':
                 uncertainty_card = drc.Card(id="uncertainty-card", children=[
                     dcc.Checklist(options=['Include Uncertainties'], value=uncer_checklist, id={'type': 'uncertainty-checklist','index': 1}),
                 ]),

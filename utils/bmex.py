@@ -69,8 +69,22 @@ def IsotopicChain(Z,model,quan,W=0):
         if W == 3:
             newdf = df.loc[:, ["N", quan+Wstring[1], "u"+quan, 'e'+quan]]
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
-            return df
+            return newdf
         return df.loc[:, ["N", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if model=='BMC':
+        ucol = "u" + quan
+        if W == 3:
+            cols = ["N", quan+Wstring[1]]
+            if ucol in df.columns:
+                cols.append(ucol)
+            newdf = df.loc[:, cols]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return newdf
+        cols = ["N", quan+Wstring[W]]
+        if ucol in df.columns:
+            cols.append(ucol)
+        return df.loc[:, cols]
+
     if W == 3:
         newdf = df.loc[:, ["N", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
@@ -87,6 +101,19 @@ def IsotonicChain(N,model,quan,W=0):
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
             return df
         return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if model=='BMC':
+        ucol = "u" + quan
+        if W == 3:
+            cols = ["N", quan+Wstring[1]]
+            if ucol in df.columns:
+                cols.append(ucol)
+            newdf = df.loc[:, cols]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return df
+        cols = ["Z", quan+Wstring[W]]
+        if ucol in df.columns:
+            cols.append(ucol)
+        return df.loc[:, cols]
     if W == 3:
         newdf = df.loc[:, ["Z", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
@@ -103,6 +130,19 @@ def IsobaricChain(A,model,quan,W=0):
             newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
             return df
         return df.loc[:, ["Z", quan+Wstring[W], "u"+quan, 'e'+quan]]
+    if model=='BMC':
+        ucol = "u" + quan
+        if W == 3:
+            cols = ["Z", quan+Wstring[1]]
+            if ucol in df.columns:
+                cols.append(ucol)
+            newdf = df.loc[:, cols]
+            newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2
+            return df
+        cols = ["Z", quan+Wstring[W]]
+        if ucol in df.columns:
+            cols.append(ucol)
+        return df.loc[:, cols]
     if W == 3:
         newdf = df.loc[:, ["Z", quan+Wstring[W]]]
         newdf[quan+Wstring[1]] = (df[quan+Wstring[1]]  + df[quan+Wstring[2]])/2

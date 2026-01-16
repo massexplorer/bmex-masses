@@ -6,6 +6,7 @@ def dataset_options(quan, EXPdiff=False):
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -27,6 +28,7 @@ def dataset_options(quan, EXPdiff=False):
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
             {"label": "PC1", "value": "PC1", "disabled": True},
@@ -204,7 +206,7 @@ def quantity_options(dataset, single=False, selected_beta_type="minus"):
             {"label": "Quad Moment Q2 N", "value": "QMQ2n", "disabled": True},
             {"label": "Quad Moment Q2 P", "value": "QMQ2p", "disabled": True},
         ]
-    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M']:
+    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M', 'BMC']:
         opts = \
         [
              {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},

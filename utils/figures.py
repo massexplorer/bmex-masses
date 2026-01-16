@@ -124,6 +124,12 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
+
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
+
+
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -164,6 +170,9 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -205,6 +214,9 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -344,6 +356,9 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('AME2020', quantity, W, step)
     vals_arr2d = vals_arr2d[ : min(len(vals_arr2d_exp),len(vals_arr2d)) , : min(len(vals_arr2d_exp[0]),len(vals_arr2d[0])) ]
     vals_arr2d_exp = vals_arr2d_exp[:len(vals_arr2d),:len(vals_arr2d[0])]
+    uncertainties = uncertainties[:len(vals_arr2d), :len(vals_arr2d[0])]
+    estimated = estimated[:len(vals_arr2d), :len(vals_arr2d[0])]
+
     for r in range(len(vals_arr2d)):
         for c in range(len(vals_arr2d[r])):
             if vals_arr2d_exp[r][c] == None or vals_arr2d[r][c] == None :
