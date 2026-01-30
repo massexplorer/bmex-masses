@@ -6,7 +6,6 @@ def dataset_options(quan, EXPdiff=False):
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
-            {"label": "Bayesian Model Combination", "value": "BMC"},
             {"label": "ME2", "value": "ME2"},
             {"label": "MEdelta", "value": "MEdelta"},
             {"label": "PC1", "value": "PC1"},
@@ -22,13 +21,14 @@ def dataset_options(quan, EXPdiff=False):
             {"label": "HFB24", "value": "HFB24"},
             {"label": "BCPM", "value": "BCPM"},
             {"label": "D1M", "value": "D1M"},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
+
         ]
     # Single Particle (No Covar DFTs)
     elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting', 'BetaMinusDecay','BetaPlusDecay', 'ElectronCaptureQValue']:
         opts = \
         [
             {"label": "AME2020", "value": "AME2020"} if not EXPdiff else {"label": "AME2020", "value": "AME2020", "disabled": True},
-            {"label": "Bayesian Model Combination", "value": "BMC"},
             {"label": "ME2", "value": "ME2", "disabled": True},
             {"label": "MEdelta", "value": "MEdelta", "disabled": True},
             {"label": "PC1", "value": "PC1", "disabled": True},
@@ -44,6 +44,8 @@ def dataset_options(quan, EXPdiff=False):
             {"label": "HFB24", "value": "HFB24"},
             {"label": "BCPM", "value": "BCPM"},
             {"label": "D1M", "value": "D1M"},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
+
         ]
     # Skyrme
     elif quan in ['FermiP', 'FermiN', 'QMQ2p', 'QMQ2n', 'QMQ2t', 'PGp', 'PGn', 'RMSradP', 'RMSradN', 'RMSradT', 'NSkin']:

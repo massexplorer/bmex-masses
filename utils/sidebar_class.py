@@ -10,7 +10,7 @@ class Sidebar:
     
     def __init__(self, views_dict={"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
-           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False},
+           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False, "include_bmc": False},
              series_tab=1, maintabs_length=1):
         for key in views_dict:
             setattr(self, key, views_dict[key])
@@ -193,6 +193,27 @@ class Sidebar:
                 uncertainty_card = drc.Card(id="uncertainty-card", children=[
                     dcc.Checklist(options=['Include Uncertainties'], value=uncer_checklist, id={'type': 'uncertainty-checklist','index': 1}),
                 ]),
+            include_bmc_card = None
+            bmc_checklist = []
+            if getattr(self, "include_bmc", False):
+                bmc_checklist = ['Include BMC']
+
+            if (
+                ('AME2020' in self.dataset)
+                and (self.chain[-4:] != 'diff')
+                and (self.dimension[-4:] != 'diff')
+            ):
+
+                include_bmc_card = drc.Card(
+                    id="include-bmc-card",
+                    children=[
+                        dcc.Checklist(
+                            options=['Include BMC'],
+                            value=bmc_checklist,
+                            id={'type': 'include-bmc-checklist', 'index': 1},
+                        ),
+                    ]
+                )
             output.append(
                 drc.Card(id='series-card', children=[
                     tabs_component,
@@ -224,6 +245,7 @@ class Sidebar:
                         ]
                     ),
                     uncertainty_card[0],
+                    include_bmc_card,
                     series_button_card
                 ])
             )
@@ -246,6 +268,25 @@ class Sidebar:
                     ]
                 ) 
             )
+            include_bmc_card = None
+            bmc_checklist = []
+            if getattr(self, "include_bmc", False):
+                bmc_checklist = ['Include BMC']
+
+            if self.dataset[self.series_n-1] == 'AME2020' and (self.dimension[-4:] != 'diff'):
+                include_bmc_card = drc.Card(
+                    id="include-bmc-card",
+                    children=[
+                        dcc.Checklist(
+                            options=['Include BMC'],
+                            value=bmc_checklist,
+                            id={'type': 'include-bmc-checklist', 'index': 1},
+                        ),
+                    ]
+                )
+
+            if include_bmc_card is not None:
+                output.append(include_bmc_card)
             output.append(
                 drc.Card(
                     id="Wigner-card", title='Allows for the adjustment from a Wigner term in the selected figure',

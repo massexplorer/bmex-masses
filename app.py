@@ -29,7 +29,7 @@ from utils import figures as figs
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus', "include_bmc": False}
 
 app = dash.Dash(
     __name__,
@@ -259,6 +259,8 @@ def download(n_clicks, figures, json_cur_views):
         Input('confirm-reset', "submit_n_clicks"),
         #uncertainty-checklist
         Input({'type': 'uncertainty-checklist', 'index': ALL}, 'value'),
+        #include-bmc-checklist
+        Input({'type': 'include-bmc-checklist', 'index': ALL}, 'value'),
         #colorbar-input
         Input({'type': 'cb-input-min', 'index': ALL}, 'value'),
         Input({'type': 'cb-input-max', 'index': ALL}, 'value'),
@@ -280,7 +282,7 @@ def download(n_clicks, figures, json_cur_views):
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, 
     rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner, beta_type):
+    reset_button, uncer, include_bmc_value, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner, beta_type):
     
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
@@ -290,6 +292,34 @@ def main_update(
         series_n = 1
     else:
         series_n = int(series_tab[0][3])
+    
+    try:
+        trig = dash.callback_context.triggered_id
+    except:
+        trig = None
+
+    if isinstance(trig, dict) and trig.get('type') == 'include-bmc-checklist':
+        # include_bmc_value is a list (ALL)
+        v = []
+        if isinstance(include_bmc_value, list) and len(include_bmc_value) > 0:
+            v = include_bmc_value[0] if include_bmc_value[0] is not None else []
+
+        new_views[n-1]['include_bmc'] = ('Include BMC' in v)
+
+        checklist = [str(i+1) for i in range(len(new_views))]
+        beta_out = [new_views[n-1].get('beta_type', 'minus')]
+
+        return [
+            json.dumps(new_views),
+            cur_tabs,
+            json.dumps("update"),
+            tab_n,
+            Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_out
+        ]
 
     #url
     if "url-store" == dash.callback_context.triggered_id:
