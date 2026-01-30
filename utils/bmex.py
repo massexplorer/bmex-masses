@@ -1,11 +1,18 @@
 import numpy as np
 import pandas as pd
 import math
+import os
 
-db = 'data/2-27-25.h5'
+# Database path
+
+db = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', '2-27-25.h5'))
+if not os.path.exists(db):
+    raise FileNotFoundError(f"Database file not found: {db}")
+
 Wstring = {0: '', 1: '_W1', 2: '_W2'}
 
-
+# print current directory for debugging
+print("Current working directory:", os.getcwd())
 
 # Retrieves single value
 def QuanValue(Z,N,model,quan,W=0,uncertainty=False):
