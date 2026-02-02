@@ -187,12 +187,13 @@ def Landscape(model, quan, W=0, step=1, SPSadj=False, include_bmc=False):
 
 def IsotopicChain(Z,model,quan,W=0, include_bmc=False):
     df = pd.read_hdf(db, model)
+    ucol = "u" + quan
     if include_bmc and model == 'AME2020':
         df_bmc = pd.read_hdf(db, 'BMC')
         if W == 3:
-            cols = [quan + Wstring[1], quan + Wstring[2]]
+            cols = [quan + Wstring[1], quan + Wstring[2], ucol]
         else:
-            cols = [quan + Wstring[W]]
+            cols = [quan + Wstring[W], ucol]
         df, bmc_mask_df = ame_with_bmc_fallback_and_mask(df, df_bmc, cols)
 
     # Now filter to the chain
@@ -225,12 +226,13 @@ def IsotopicChain(Z,model,quan,W=0, include_bmc=False):
 
 def IsotonicChain(N,model,quan,W=0, include_bmc=False):
     df = pd.read_hdf(db, model)
+    ucol = "u" + quan
     if include_bmc and model == 'AME2020':
         df_bmc = pd.read_hdf(db, 'BMC')
         if W == 3:
-            cols = [quan + Wstring[1], quan + Wstring[2]]
+            cols = [quan + Wstring[1], quan + Wstring[2], ucol]
         else:
-            cols = [quan + Wstring[W]]
+            cols = [quan + Wstring[W], ucol]
         df, bmc_mask_df = ame_with_bmc_fallback_and_mask(df, df_bmc, cols)
 
     df = df[df["N"] == N].copy()
@@ -261,12 +263,13 @@ def IsotonicChain(N,model,quan,W=0, include_bmc=False):
 
 def IsobaricChain(A,model,quan,W=0, include_bmc=False):
     df = pd.read_hdf(db, model)
+    ucol = "u" + quan
     if include_bmc and model == 'AME2020':
         df_bmc = pd.read_hdf(db, 'BMC')
         if W == 3:
-            cols = [quan + Wstring[1], quan + Wstring[2]]
+            cols = [quan + Wstring[1], quan + Wstring[2], ucol]
         else:
-            cols = [quan + Wstring[W]]
+            cols = [quan + Wstring[W], ucol]
         df, bmc_mask_df = ame_with_bmc_fallback_and_mask(df, df_bmc, cols)
 
     df = df[(df["Z"] + df["N"]) == A].copy()
