@@ -90,7 +90,7 @@ def single(quantity, model, Z, N, wigner=[0]):
                         out_str += " (Estimated Value)"
                 output.append(html.P(out_str))
                 
-        return html.Div(id="nucleiAll", children=output, style={'font-size':'1vw'})
+        return html.Div(id="nucleiAll", children=output, style={'fontSize':'1vw'})
     else:
         result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
         try:
@@ -103,7 +103,7 @@ def single(quantity, model, Z, N, wigner=[0]):
             if estimated == True:
                 out_str += " (Estimated Value)"
             return html.P(out_str)
-        return html.P(result, style={'font-size':'1vw'})
+        return html.P(result, style={'fontSize':'1vw'})
 
 def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'

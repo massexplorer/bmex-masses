@@ -24,7 +24,7 @@ class Sidebar:
         return drc.Card(
             id="protons-card",
             children=[
-                html.P("Protons:", style={"padding-left": '.5rem'}),
+                html.P("Protons:", style={"paddingLeft": '.5rem'}),
                 dcc.Input(
                     id={'type': 'input-protons','index': index+1},
                     type="number",
@@ -33,7 +33,9 @@ class Sidebar:
                     step=1,
                     placeholder="Proton #",
                     value=self.proton[index],
-                    className="nucleon-input"
+                    className="nucleon-input",
+                    autoComplete="off",
+                    name=f"protons-{index}"
                 ),
             ],
         )
@@ -42,7 +44,7 @@ class Sidebar:
         return drc.Card(
             id="neutrons-card",
             children=[
-                html.P("Neutrons:", style={"padding-left": '.5rem'}),
+                html.P("Neutrons:", style={"paddingLeft": '.5rem'}),
                 dcc.Input(
                     id={'type': 'input-neutrons','index': index+1},
                     type="number",
@@ -51,7 +53,9 @@ class Sidebar:
                     step=1,
                     placeholder="Neutron #",
                     value=self.neutron[index],
-                    className="nucleon-input"
+                    className="nucleon-input",
+                    autoComplete="off",
+                    name=f"neutrons-{index}"
                 ),
             ],
         )
@@ -66,7 +70,7 @@ class Sidebar:
                 return drc.Card(
                     id="nucleons-card",
                     children=[
-                        html.P("Nucleons:", style={"padding-left": '.5rem'}),
+                        html.P("Nucleons:", style={"paddingLeft": '.5rem'}),
                         dcc.Input(
                             id={'type': 'input-nucleons','index': index+1},
                             type="number",
@@ -75,7 +79,9 @@ class Sidebar:
                             step=1,
                             placeholder="Nucleon #",
                             value=self.nucleon[index],
-                            className="nucleon-input"
+                            className="nucleon-input",
+                            autoComplete="off",
+                            name=f"nucleons-{index}"
                         ),
                     ],
                 )
@@ -332,10 +338,12 @@ class Sidebar:
                     html.P('Colorbar Range', id='colorbar-input-label'),
                     dcc.Input(id={'type': 'cb-input-min','index': 1}, type='number', 
                               value=self.colorbar_range[0], className='colorbar-input',
-                              placeholder='min'),
+                              placeholder='min', autoComplete='off', autoFocus=False,
+                              name='colorbar-min'),
                     dcc.Input(id={'type': 'cb-input-max','index': 1}, type='number', 
                               value=self.colorbar_range[1], className='colorbar-input',
-                              placeholder='max')
+                              placeholder='max', autoComplete='off', autoFocus=False,
+                              name='colorbar-max')
                 ]),
             )
             # output.append(
