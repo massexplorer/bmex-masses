@@ -205,7 +205,7 @@ class Sidebar:
                 bmc_checklist = ['Include BMC']
 
             if (
-                ('AME2020' in self.dataset)
+                (self.dataset[self.series_n-1] == 'AME2020')
                 and (self.chain[-4:] != 'diff')
                 and (self.dimension[-4:] != 'diff')
             ):
