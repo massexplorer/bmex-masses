@@ -29,7 +29,7 @@ from utils import figures as figs
 default = {"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
            "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None],
-           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus'}
+           "uncertainty": [False], "estimated": [False], "even_even": True, "beta_type": 'minus', "include_bmc": False}
 
 app = dash.Dash(
     __name__,
@@ -41,6 +41,48 @@ app = dash.Dash(
 app.config.suppress_callback_exceptions=True
 
 app.title = "Bayesian Mass Explorer"
+
+# Add inline script to prevent autofill extension errors as early as possible
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <script>
+        // Early override of querySelectorAll to prevent autofill extension errors
+        (function() {
+            const originalQSA = Document.prototype.querySelectorAll;
+            Document.prototype.querySelectorAll = function(selector) {
+                try {
+                    if (selector && typeof selector === 'string' && 
+                        (selector.includes('{"index"') || selector.includes('{"type"') || 
+                         selector.match(/\\[for="\\{.*\\}"\\]/))) {
+                        return document.createDocumentFragment().querySelectorAll('*');
+                    }
+                    return originalQSA.call(this, selector);
+                } catch (e) {
+                    if (e instanceof DOMException && e.name === 'SyntaxError') {
+                        return document.createDocumentFragment().querySelectorAll('*');
+                    }
+                    throw e;
+                }
+            };
+        })();
+        </script>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
 
 server = app.server
 
@@ -259,6 +301,8 @@ def download(n_clicks, figures, json_cur_views):
         Input('confirm-reset', "submit_n_clicks"),
         #uncertainty-checklist
         Input({'type': 'uncertainty-checklist', 'index': ALL}, 'value'),
+        #include-bmc-checklist
+        Input({'type': 'include-bmc-checklist', 'index': ALL}, 'value'),
         #colorbar-input
         Input({'type': 'cb-input-min', 'index': ALL}, 'value'),
         Input({'type': 'cb-input-max', 'index': ALL}, 'value'),
@@ -280,16 +324,54 @@ def download(n_clicks, figures, json_cur_views):
 def main_update(
     json_cur_views, cur_tabs, cur_sidebar, figures, links, 
     rescale_colorbar, url, tab_n, relayout_data, series_button, series_tab, delete_series, delete_button, 
-    reset_button, uncer, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner, beta_type):
+    reset_button, uncer, include_bmc_value, cb_min, cb_max, even_even, dimension, oneD, quantity, dataset, protons, neutrons, nucleons, colorbar, wigner, beta_type):
     
     cur_views = json.loads(json_cur_views)
     new_views = cur_views.copy()
     
     n = int(tab_n[3])
+    
+    # Helper function to get a safe beta_type output value
+    # The dropdown-beta-type uses ALL pattern, so output must match the number of dropdowns in DOM
+    # The beta_type input tells us how many components exist - if empty, return empty list
+    def get_safe_beta_type(views, view_index):
+        # If beta_type input is empty, there are 0 dropdown components - return empty list
+        if not beta_type or len(beta_type) == 0:
+            return []
+        # Otherwise return the current beta_type (matches number of existing components)
+        return beta_type
     if len(series_tab) == 0:
         series_n = 1
     else:
         series_n = int(series_tab[0][3])
+    
+    try:
+        trig = dash.callback_context.triggered_id
+    except:
+        trig = None
+
+    if isinstance(trig, dict) and trig.get('type') == 'include-bmc-checklist':
+        # include_bmc_value is a list (ALL)
+        v = []
+        if isinstance(include_bmc_value, list) and len(include_bmc_value) > 0:
+            v = include_bmc_value[0] if include_bmc_value[0] is not None else []
+
+        new_views[n-1]['include_bmc'] = ('Include BMC' in v)
+
+        checklist = [str(i+1) for i in range(len(new_views))]
+        beta_out = [new_views[n-1].get('beta_type', 'minus')]
+
+        return [
+            json.dumps(new_views),
+            cur_tabs,
+            json.dumps("update"),
+            tab_n,
+            Sidebar(new_views[n-1], series_n, len(cur_tabs)).show(),
+            checklist,
+            links,
+            ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
+            beta_out
+        ]
 
     #url
     if "url-store" == dash.callback_context.triggered_id:
@@ -331,7 +413,7 @@ def main_update(
                 checklist,
                 [],
                 ['Even-Even Nuclei'] if loaded_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(loaded_views, n-1)
             ]
         else:
             new_tabs = [dcc.Tab(label=str(i+1),value='tab'+str(i+1),className='custom-tab', selected_className='custom-tab--selected') for i in range(len(cur_views))]
@@ -347,7 +429,7 @@ def main_update(
                 checklist,
                 [],
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(cur_views, n-1)
             ]
 
     #main-tabs_change
@@ -375,7 +457,7 @@ def main_update(
             checklist,
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-            beta_type
+            get_safe_beta_type(new_views, n-1)
         ]
 
     #delete_plot
@@ -399,7 +481,7 @@ def main_update(
                 checklist,
                 links,
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(new_views, len(new_views)-1)
             ]
         else:
             raise PreventUpdate
@@ -416,7 +498,7 @@ def main_update(
             ['1'],
             [],
             ['Even-Even Nuclei'],
-            beta_type
+            get_safe_beta_type([default], 0)
         ]
 
     # A function that inputs an array of different data types and only keeps the floats
@@ -443,7 +525,7 @@ def main_update(
             checklist,
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-            beta_type
+            get_safe_beta_type(new_views, n-1)
         ]
     
     # even_even
@@ -460,7 +542,7 @@ def main_update(
             checklist,
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-            beta_type
+            get_safe_beta_type(new_views, n-1)
         ]
 
     try:
@@ -499,7 +581,7 @@ def main_update(
                 checklist,
                 links,
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(new_views, n-1)
             ]
         raise PreventUpdate
     
@@ -575,7 +657,7 @@ def main_update(
             checklist,
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-            beta_type
+            get_safe_beta_type(new_views, n-1)
         ]
 
     #delete_series
@@ -599,7 +681,7 @@ def main_update(
                 checklist,
                 links,
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(new_views, n-1)
             ]
         else:
             raise PreventUpdate
@@ -624,7 +706,7 @@ def main_update(
                 checklist,
                 links,
                 ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-                beta_type
+                get_safe_beta_type(new_views, n-1)
             ]
         return [
             json.dumps(cur_views), 
@@ -635,16 +717,16 @@ def main_update(
             checklist,
             links,
             ['Even-Even Nuclei'] if new_views[0]['even_even'] else [],
-            beta_type
+            get_safe_beta_type(cur_views, n-1)
         ]
-    if quantity[n-1] in ["BetaMinusDecay", "BetaPlusDecay"]:
-
-            new_views[n-1]['beta_type'] = beta_type[n-1]  # Add beta_type to the current view
+    if quantity and len(quantity) > n-1 and quantity[n-1] in ["BetaMinusDecay", "BetaPlusDecay"]:
+        if beta_type and len(beta_type) > 0:
+            new_views[n-1]['beta_type'] = beta_type[0]  # Add beta_type to the current view
 
     if "dropdown-beta-type" == dash.callback_context.triggered_id['type']:
-
-        new_views[n-1]['quantity'] = 'BetaPlusDecay' if beta_type[0] == 'plus' else 'BetaMinusDecay'
-        new_views[n-1]['beta_type'] = beta_type[n-1]
+        if beta_type and len(beta_type) > 0:
+            new_views[n-1]['quantity'] = 'BetaPlusDecay' if beta_type[0] == 'plus' else 'BetaMinusDecay'
+            new_views[n-1]['beta_type'] = beta_type[0]
 
     # Colorbar Input
     if "cb-input-min" == dash.callback_context.triggered_id['type']:
@@ -708,10 +790,10 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
         views_list = json.loads(json_views)
         graph_styles = []
         if breakpoint_name == "lg" and len(views_list) > 1:
-            style = {"display": 'grid', "grid-template-columns": '[c1] 50% [c2] 50% [c3]',
-            "grid-template-rows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
+            style = {"display": 'grid', "gridTemplateColumns": '[c1] 50% [c2] 50% [c3]',
+            "gridTemplateRows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
             for i in range(len(views_list)):
-                graph_styles.append({"grid-area": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
+                graph_styles.append({"gridArea": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
                                      "width": '27vw', "height": '21vw'})
         elif breakpoint_name == "sm":
             style = {"display": 'flex', "width": '100%'}
@@ -728,4 +810,4 @@ def graph_output(trigger: str, breakpoint_name: str, json_views: list):
 
 # Running the server
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)

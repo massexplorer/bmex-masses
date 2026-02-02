@@ -90,7 +90,7 @@ def single(quantity, model, Z, N, wigner=[0]):
                         out_str += " (Estimated Value)"
                 output.append(html.P(out_str))
                 
-        return html.Div(id="nucleiAll", children=output, style={'font-size':'1vw'})
+        return html.Div(id="nucleiAll", children=output, style={'fontSize':'1vw'})
     else:
         result, uncer, estimated = bmex.QuanValue(Z,N,model,quantity,W,uncertainty=True)
         try:
@@ -103,9 +103,9 @@ def single(quantity, model, Z, N, wigner=[0]):
             if estimated == True:
                 out_str += " (Estimated Value)"
             return html.P(out_str)
-        return html.P(result, style={'font-size':'1vw'})
+        return html.P(result, style={'fontSize':'1vw'})
 
-def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
+def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
@@ -116,7 +116,8 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(Z)):
-        df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        use_bmc = bool(include_bmc) and (model[i] == 'AME2020')
+        df = bmex.IsotopicChain(Z[i], model[i], quantity, wigner[i], include_bmc=use_bmc).sort_values(by=['N'])
         if even_even:
             df = df[df['N']%2==0]
         neutrons = df['N']
@@ -124,6 +125,12 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(neutrons), '')
         markers = 'circle'
+
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
+
+
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -145,7 +152,7 @@ def isotopic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
-def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
+def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
@@ -156,7 +163,8 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(N)):
-        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        use_bmc = bool(include_bmc) and (model[i] == 'AME2020')
+        df = bmex.IsotonicChain(N[i], model[i], quantity, wigner[i], include_bmc=use_bmc).sort_values(by=['Z'])
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
@@ -164,6 +172,9 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -186,7 +197,7 @@ def isotonic(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
 
-def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainties, even_even):
+def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
@@ -197,7 +208,8 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         )
     traces = []
     for i in range(len(A)):
-        df = bmex.IsobaricChain(A[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        use_bmc = bool(include_bmc) and (model[i] == 'AME2020')
+        df = bmex.IsobaricChain(A[i], model[i], quantity, wigner[i], include_bmc=use_bmc).sort_values(by=['Z'])
         if even_even:
             df = df[df['Z']%2==0]
         protons = df['Z']
@@ -205,6 +217,9 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
         error_dict = None
         est_str = np.full(len(protons), '')
         markers = 'circle'
+        if model[i] == 'BMC':
+            if uncertainties[i] and ('u' + quantity) in df.columns:
+                error_dict = dict(type='data', array=df['u' + quantity], visible=True)
         if model[i]=='AME2020':
             markers = np.array(df['e'+quantity], dtype=bool)
             est_str = markers.copy()
@@ -227,27 +242,81 @@ def isobaric(quantity, model, colorbar, wigner, N, Z, A, view_range, uncertainti
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
     
 
-def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False):
+def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorbar_range=[None, None], view_range={"x": [None, None], "y": [None, None]}, even_even=False, uncertainties=False, SPSadj=False, include_bmc=False):
     W = wigner[0]
     model = model[0]
     step=1
     if even_even:
         step=2
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, W, step, SPSadj)
-    combined_str = np.full_like(vals_arr2d, '')
-    if model == 'AME2020':
-        estimated = np.where(estimated==1, 'E', '')
-        est_str = estimated.copy()
-        est_str = np.where(estimated=='E', 'Estimated', '')
-        combined_str = est_str.copy()
+    data, vals_arr2d, uncertainties, estimated, bmc_used = bmex.Landscape(model, quantity, W, step, SPSadj, include_bmc=include_bmc)
+    combined_str = np.full_like(vals_arr2d, '', dtype=object)
+    label_str    = np.full_like(vals_arr2d, '', dtype=object)
+    unc_str      = np.full_like(vals_arr2d, '', dtype=object)
 
-        if quantity == 'BE':
-                uncertainties[uncertainties==np.nan] = ''
-                for ri in range(len(uncertainties)):
-                    for ci in range(len(uncertainties[0])):
-                        if uncertainties[ri,ci] != '':
-                            uncertainties[ri,ci] = "\u00B1"+str(uncertainties[ri,ci])
-                combined_str = [x + '<br>' + y for x, y in zip(uncertainties, est_str)]
+    has_val = np.vectorize(lambda v: (v is not None))(vals_arr2d)
+
+    if model == 'AME2020':
+        estimated = np.where(estimated == 1, 'E', '')
+        est_str = np.where(estimated == 'E', 'Estimated', '')
+
+        if include_bmc and (bmc_used is not None):
+            bmc_str = np.where(bmc_used, 'Bayesian Model Combination Prediction', '')
+        else:
+            bmc_str = np.full_like(vals_arr2d, '', dtype=object)
+
+        label_str = np.where(
+            (est_str != '') & (bmc_str != ''),
+            est_str + '<br>' + bmc_str,
+            np.where(est_str != '', est_str, bmc_str)
+        )
+
+    elif model == 'BMC':
+        label_str = np.where(has_val, 'Bayesian Model Combination Prediction', '')
+
+    else:
+        label_str = np.full_like(vals_arr2d, '', dtype=object)
+
+  
+
+    if uncertainties is not None:
+        tmp = np.full_like(vals_arr2d, '', dtype=object)
+        for ri in range(tmp.shape[0]):
+            for ci in range(tmp.shape[1]):
+                u = uncertainties[ri, ci]
+                if u is None or str(u) == 'nan':
+                    tmp[ri, ci] = ''
+                else:
+                    tmp[ri, ci] = "\u00B1" + str(u)
+
+        if model == 'AME2020':
+            if include_bmc and (bmc_used is not None):
+                unc_str = np.where(bmc_used, tmp, '')
+                if quantity == 'BE':
+                    unc_str = np.where(bmc_used, unc_str, tmp)
+            else:
+                if quantity == 'BE':
+                    unc_str = tmp
+                else:
+                    unc_str = np.full_like(vals_arr2d, '', dtype=object)
+
+        elif model == 'BMC':
+            unc_str = tmp
+
+        else:
+            unc_str = np.full_like(vals_arr2d, '', dtype=object)
+
+    combined_str = np.where(
+        (unc_str != '') & (label_str != ''),
+        unc_str + '<br>' + label_str,
+        np.where(unc_str != '', unc_str, label_str)
+    )
+
+    text_overlay = estimated if model == 'AME2020' else np.full_like(vals_arr2d, '', dtype=object)
+
+    if model == 'AME2020' and include_bmc and (bmc_used is not None):
+        if isinstance(text_overlay, str):
+            text_overlay = np.full_like(vals_arr2d, text_overlay)
+        text_overlay = np.where(bmc_used, 'B', text_overlay)
 
     filtered = []
     for e in vals_arr2d.flatten():
@@ -296,7 +365,7 @@ def landscape(quantity, model, colorbar, wigner, Z=None, N=None, A=None, colorba
             colorbar=dict(title=units[quantity]), 
             customdata=combined_str,
             hovertemplate = '<b><i>N</i></b>: %{x}<br>'+'<b><i>Z</i></b>: %{y}<br>'+'<b><i>Value</i></b>: %{z}<br>'+'<b>%{customdata}</b>', 
-            text=estimated, texttemplate="%{text}", textfont=dict(color='black'),
+            text=text_overlay, texttemplate="%{text}", textfont=dict(color='black'),
             # textfont=dict(size=4, color='cyan'),
         ),
     ]
@@ -340,10 +409,13 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     step=1
     if even_even:
         step=2
-    data, vals_arr2d, uncertainties, estimated = bmex.Landscape(model, quantity, 0, step)
-    data, vals_arr2d_exp, uncertainties, estimated = bmex.Landscape('AME2020', quantity, W, step)
+    data, vals_arr2d, uncertainties, estimated, _ = bmex.Landscape(model, quantity, 0, step)
+    data, vals_arr2d_exp, uncertainties, estimated, _ = bmex.Landscape('AME2020', quantity, W, step)
     vals_arr2d = vals_arr2d[ : min(len(vals_arr2d_exp),len(vals_arr2d)) , : min(len(vals_arr2d_exp[0]),len(vals_arr2d[0])) ]
     vals_arr2d_exp = vals_arr2d_exp[:len(vals_arr2d),:len(vals_arr2d[0])]
+    uncertainties = uncertainties[:len(vals_arr2d), :len(vals_arr2d[0])]
+    estimated = estimated[:len(vals_arr2d), :len(vals_arr2d[0])]
+
     for r in range(len(vals_arr2d)):
         for c in range(len(vals_arr2d[r])):
             if vals_arr2d_exp[r][c] == None or vals_arr2d[r][c] == None :
@@ -400,7 +472,7 @@ def landscape_diff(quantity, model, colorbar, wigner, Z=None, N=None, A=None, co
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
 
-def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
+def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotopic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
@@ -414,7 +486,8 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
     for i in range(len(Z)):
         exp = bmex.IsotopicChain(Z[i],'AME2020',quantity,wigner[i]).sort_values(by=['N'])
         exp.columns=['N', quantity+'_exp', 'u'+quantity, 'e'+quantity]
-        df = bmex.IsotopicChain(Z[i],model[i],quantity,wigner[i]).sort_values(by=['N'])
+        use_bmc = bool(include_bmc) and (model[i] == 'AME2020')
+        df = bmex.IsotopicChain(Z[i], model[i], quantity, wigner[i], include_bmc=use_bmc).sort_values(by=['N'])
         master = pd.merge(exp, df, how='inner', on=['N'])
         if even_even:
             master = master[master['N']%2==0]
@@ -432,7 +505,7 @@ def isotopic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
         ))
     return go.Figure(data=traces, layout=layout, layout_xaxis_range=view_range['x'], layout_yaxis_range=view_range['y'])
 
-def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even):
+def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncertainties, even_even, include_bmc=False):
     yaxis_unit = '' if units[quantity] == '' else '('+units[quantity]+')'
     layout = go.Layout(font={"color": "#a5b1cd", "size": 14}, title={"text": "Model/EXP Diff Isotonic Chain", "font": {"size": 20}}, 
         plot_bgcolor="#282b38", paper_bgcolor="#282b38", 
@@ -445,7 +518,8 @@ def isotonic_diff(quantity, model, colorbar, wigner, Z, N, A, view_range, uncert
     for i in range(len(N)):
         exp = bmex.IsotonicChain(N[i],'AME2020',quantity,wigner[i]).sort_values(by=['Z'])
         exp.columns=['Z', quantity+'_exp', 'u'+quantity, 'e'+quantity]
-        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i]).sort_values(by=['Z'])
+        use_bmc = bool(include_bmc) and (model[i] == 'AME2020')
+        df = bmex.IsotonicChain(N[i],model[i],quantity,wigner[i], include_bmc=use_bmc).sort_values(by=['Z'])
         master = pd.merge(exp, df, how='inner', on=['Z'])
         if even_even:
             master = master[master['Z']%2==0]

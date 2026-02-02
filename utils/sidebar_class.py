@@ -10,7 +10,7 @@ class Sidebar:
     
     def __init__(self, views_dict={"dimension": 'landscape', "chain": 'isotopic', "quantity": 'BE', "dataset": ['AME2020'], 
            "colorbar": 'linear', "wigner": [0], "proton": [None], "neutron": [None], "nucleon": [None], 
-           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False},
+           "range": {"x": [None, None], "y": [None, None]}, "colorbar_range": [None, None], "uncertainty": False, "include_bmc": False},
              series_tab=1, maintabs_length=1):
         for key in views_dict:
             setattr(self, key, views_dict[key])
@@ -24,7 +24,7 @@ class Sidebar:
         return drc.Card(
             id="protons-card",
             children=[
-                html.P("Protons:", style={"padding-left": '.5rem'}),
+                html.P("Protons:", style={"paddingLeft": '.5rem'}),
                 dcc.Input(
                     id={'type': 'input-protons','index': index+1},
                     type="number",
@@ -33,7 +33,9 @@ class Sidebar:
                     step=1,
                     placeholder="Proton #",
                     value=self.proton[index],
-                    className="nucleon-input"
+                    className="nucleon-input",
+                    autoComplete="off",
+                    name=f"protons-{index}"
                 ),
             ],
         )
@@ -42,7 +44,7 @@ class Sidebar:
         return drc.Card(
             id="neutrons-card",
             children=[
-                html.P("Neutrons:", style={"padding-left": '.5rem'}),
+                html.P("Neutrons:", style={"paddingLeft": '.5rem'}),
                 dcc.Input(
                     id={'type': 'input-neutrons','index': index+1},
                     type="number",
@@ -51,7 +53,9 @@ class Sidebar:
                     step=1,
                     placeholder="Neutron #",
                     value=self.neutron[index],
-                    className="nucleon-input"
+                    className="nucleon-input",
+                    autoComplete="off",
+                    name=f"neutrons-{index}"
                 ),
             ],
         )
@@ -66,7 +70,7 @@ class Sidebar:
                 return drc.Card(
                     id="nucleons-card",
                     children=[
-                        html.P("Nucleons:", style={"padding-left": '.5rem'}),
+                        html.P("Nucleons:", style={"paddingLeft": '.5rem'}),
                         dcc.Input(
                             id={'type': 'input-nucleons','index': index+1},
                             type="number",
@@ -75,7 +79,9 @@ class Sidebar:
                             step=1,
                             placeholder="Nucleon #",
                             value=self.nucleon[index],
-                            className="nucleon-input"
+                            className="nucleon-input",
+                            autoComplete="off",
+                            name=f"nucleons-{index}"
                         ),
                     ],
                 )
@@ -189,10 +195,31 @@ class Sidebar:
             uncer_checklist = []
             if self.uncertainty[self.series_n-1]:
                 uncer_checklist = ['Include Uncertainties']
-            if self.dataset[self.series_n-1] == 'AME2020':
+            if self.dataset[self.series_n-1] == 'AME2020' or self.dataset[self.series_n-1] == 'BMC':
                 uncertainty_card = drc.Card(id="uncertainty-card", children=[
                     dcc.Checklist(options=['Include Uncertainties'], value=uncer_checklist, id={'type': 'uncertainty-checklist','index': 1}),
                 ]),
+            include_bmc_card = None
+            bmc_checklist = []
+            if getattr(self, "include_bmc", False):
+                bmc_checklist = ['Include BMC']
+
+            if (
+                (self.dataset[self.series_n-1] == 'AME2020')
+                and (self.chain[-4:] != 'diff')
+                and (self.dimension[-4:] != 'diff')
+            ):
+
+                include_bmc_card = drc.Card(
+                    id="include-bmc-card",
+                    children=[
+                        dcc.Checklist(
+                            options=['Include BMC'],
+                            value=bmc_checklist,
+                            id={'type': 'include-bmc-checklist', 'index': 1},
+                        ),
+                    ]
+                )
             output.append(
                 drc.Card(id='series-card', children=[
                     tabs_component,
@@ -224,6 +251,7 @@ class Sidebar:
                         ]
                     ),
                     uncertainty_card[0],
+                    include_bmc_card,
                     series_button_card
                 ])
             )
@@ -246,6 +274,25 @@ class Sidebar:
                     ]
                 ) 
             )
+            include_bmc_card = None
+            bmc_checklist = []
+            if getattr(self, "include_bmc", False):
+                bmc_checklist = ['Include BMC']
+
+            if self.dataset[self.series_n-1] == 'AME2020' and (self.dimension[-4:] != 'diff'):
+                include_bmc_card = drc.Card(
+                    id="include-bmc-card",
+                    children=[
+                        dcc.Checklist(
+                            options=['Include BMC'],
+                            value=bmc_checklist,
+                            id={'type': 'include-bmc-checklist', 'index': 1},
+                        ),
+                    ]
+                )
+
+            if include_bmc_card is not None:
+                output.append(include_bmc_card)
             output.append(
                 drc.Card(
                     id="Wigner-card", title='Allows for the adjustment from a Wigner term in the selected figure',
@@ -291,10 +338,12 @@ class Sidebar:
                     html.P('Colorbar Range', id='colorbar-input-label'),
                     dcc.Input(id={'type': 'cb-input-min','index': 1}, type='number', 
                               value=self.colorbar_range[0], className='colorbar-input',
-                              placeholder='min'),
+                              placeholder='min', autoComplete='off', autoFocus=False,
+                              name='colorbar-min'),
                     dcc.Input(id={'type': 'cb-input-max','index': 1}, type='number', 
                               value=self.colorbar_range[1], className='colorbar-input',
-                              placeholder='max')
+                              placeholder='max', autoComplete='off', autoFocus=False,
+                              name='colorbar-max')
                 ]),
             )
             # output.append(

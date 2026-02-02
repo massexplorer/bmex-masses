@@ -130,3 +130,9 @@ dmypy.json
 
 # hash database
 bmex-db/views-db.sql
+
+# MacOS
+.DS_Store
+
+# VS Code
+.vscode/

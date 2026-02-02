@@ -21,6 +21,8 @@ def dataset_options(quan, EXPdiff=False):
             {"label": "HFB24", "value": "HFB24"},
             {"label": "BCPM", "value": "BCPM"},
             {"label": "D1M", "value": "D1M"},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
+
         ]
     # Single Particle (No Covar DFTs)
     elif quan in ['OneNSE', 'OnePSE', 'N3PointOED', 'N3PointOED', 'SNESplitting', 'SPESplitting', 'BetaMinusDecay','BetaPlusDecay', 'ElectronCaptureQValue']:
@@ -42,6 +44,8 @@ def dataset_options(quan, EXPdiff=False):
             {"label": "HFB24", "value": "HFB24"},
             {"label": "BCPM", "value": "BCPM"},
             {"label": "D1M", "value": "D1M"},
+            {"label": "Bayesian Model Combination", "value": "BMC"},
+
         ]
     # Skyrme
     elif quan in ['FermiP', 'FermiN', 'QMQ2p', 'QMQ2n', 'QMQ2t', 'PGp', 'PGn', 'RMSradP', 'RMSradN', 'RMSradT', 'NSkin']:
@@ -204,7 +208,7 @@ def quantity_options(dataset, single=False, selected_beta_type="minus"):
             {"label": "Quad Moment Q2 N", "value": "QMQ2n", "disabled": True},
             {"label": "Quad Moment Q2 P", "value": "QMQ2p", "disabled": True},
         ]
-    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M']:
+    elif dataset in ['AME2020', 'HFB24', 'UNEDF2', 'BCPM', 'D1M', 'BMC']:
         opts = \
         [
              {"label": "Binding Energy", "value": "BE", "title": "Energy required to completely seperate the nucleus: \n B(N,Z)"},

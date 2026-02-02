@@ -185,6 +185,14 @@
     width: 100%
 }
 
+/* Prevent autofill on inputs with dictionary IDs */
+.nucleon-input:-webkit-autofill,
+.nucleon-input:-webkit-autofill:hover,
+.nucleon-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
 #dataset-card {
     width: 100%
 }
@@ -205,6 +213,14 @@
 .colorbar-input {
     width: 30%;
     margin-right: 10%;
+}
+
+/* Prevent autofill on inputs with dictionary IDs */
+.colorbar-input:-webkit-autofill,
+.colorbar-input:-webkit-autofill:hover,
+.colorbar-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 #delete-card {
