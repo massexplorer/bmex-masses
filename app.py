@@ -42,48 +42,6 @@ app.config.suppress_callback_exceptions=True
 
 app.title = "Bayesian Mass Explorer"
 
-# Add inline script to prevent autofill extension errors as early as possible
-app.index_string = '''
-<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>{%title%}</title>
-        {%favicon%}
-        {%css%}
-        <script>
-        // Early override of querySelectorAll to prevent autofill extension errors
-        (function() {
-            const originalQSA = Document.prototype.querySelectorAll;
-            Document.prototype.querySelectorAll = function(selector) {
-                try {
-                    if (selector && typeof selector === 'string' && 
-                        (selector.includes('{"index"') || selector.includes('{"type"') || 
-                         selector.match(/\\[for="\\{.*\\}"\\]/))) {
-                        return document.createDocumentFragment().querySelectorAll('*');
-                    }
-                    return originalQSA.call(this, selector);
-                } catch (e) {
-                    if (e instanceof DOMException && e.name === 'SyntaxError') {
-                        return document.createDocumentFragment().querySelectorAll('*');
-                    }
-                    throw e;
-                }
-            };
-        })();
-        </script>
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
-</html>
-'''
-
 server = app.server
 
 app.layout = html.Div(
