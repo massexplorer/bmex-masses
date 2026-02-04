@@ -748,27 +748,33 @@ def main_update(
     ],
 )
 def graph_output(trigger: str, breakpoint_name: str, json_views: list):
-
     if(dash.callback_context.triggered_id != 'triggerGraph' or json.loads(trigger)=="update"):
-        views_list = json.loads(json_views)
-        graph_styles = []
-        if breakpoint_name == "lg" and len(views_list) > 1:
-            style = {"display": 'grid', "gridTemplateColumns": '[c1] 50% [c2] 50% [c3]',
-            "gridTemplateRows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
-            for i in range(len(views_list)):
-                graph_styles.append({"gridArea": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
-                                     "width": '27vw', "height": '21vw'})
-        elif breakpoint_name == "sm":
-            style = {"display": 'flex', "width": '100%'}
-            graph_styles = [{"width": '96vw', "height": '80vw'} for i in range(len(views_list))]
-        else:
-            style = {"display": 'flex', "width": '100%'}
-            graph_styles = [{"width": '48vw', "height": '37vw'} for i in range(len(views_list))]
-        output = []
-        for i in range(len(views_list)): # iterate through dicts in list
-            view = View(views_list[i], i+1)
-            output.append(view.plot(graph_style=graph_styles[i]))
-        return output, style
+        try:
+            views_list = json.loads(json_views)
+            graph_styles = []
+            if breakpoint_name == "lg" and len(views_list) > 1:
+                style = {"display": 'grid', "gridTemplateColumns": '[c1] 50% [c2] 50% [c3]',
+                "gridTemplateRows": '[r1] 50% [r2] 50% [r3]', "width": '100%', "height": '39.6vw'}
+                for i in range(len(views_list)):
+                    graph_styles.append({"gridArea": f"r{math.ceil((i+1)/2)} / c{1+i%2} / r{math.ceil((i+1)/2)+1} / c{2+i%2}", \
+                                         "width": '27vw', "height": '21vw'})
+            elif breakpoint_name == "sm":
+                style = {"display": 'flex', "width": '100%'}
+                graph_styles = [{"width": '96vw', "height": '80vw'} for i in range(len(views_list))]
+            else:
+                style = {"display": 'flex', "width": '100%'}
+                graph_styles = [{"width": '48vw', "height": '37vw'} for i in range(len(views_list))]
+            output = []
+            for i in range(len(views_list)): # iterate through dicts in list
+                view = View(views_list[i], i+1)
+                output.append(view.plot(graph_style=graph_styles[i]))
+            return output, style
+        except Exception as exc:
+            app.logger.exception("Error building graphs", exc_info=exc)
+            return [html.Div(
+                "Graph rendering failed. Check server logs for details.",
+                style={"color": "#e76f51", "padding": "1rem"}
+            )], {"display": "block", "width": "100%"}
     raise PreventUpdate
 
 # Running the server
