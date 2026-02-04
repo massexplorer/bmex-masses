@@ -36,12 +36,7 @@ app = dash.Dash(
     meta_tags=[
         {"name": "viewport", "content": "width=device-width, initial-scale=1.0"}
     ],
-    serve_locally=False,
 )
-
-# Ensure component bundles load from CDN (avoids 500s when serving locally)
-app.scripts.config.serve_locally = False
-app.css.config.serve_locally = False
 
 app.config.suppress_callback_exceptions=True
 
