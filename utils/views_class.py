@@ -41,26 +41,29 @@ class View:
                 include_bmc=include_bmc
             )
             # Update all traces
-        for i, trace in enumerate(figure['data']):
-            # First trace (legend/marker only)
-            if i % 2 == 0: 
-                if "marker" in trace:
-                    trace["marker"]["color"] = self.line_color  # Match the line color
-                    trace["marker"]["size"] = 7
+            for i, trace in enumerate(figure['data']):
+                # First trace (legend/marker only)
+                if i % 2 == 0: 
+                    if "marker" in trace:
+                        trace["marker"]["color"] = self.line_color  # Match the line color
+                        trace["marker"]["size"] = 7
 
-            # Second trace (actual data)
-            if i % 2 == 1:  
-                if "line" not in trace:
-                    trace["line"] = {}
-                trace["line"]["color"] = self.line_color
-                trace["line"]["width"] = self.line_width
-                trace["line"]["dash"] = self.line_style
-                if "marker" in trace:
-                    trace["marker"]["color"] = self.line_color
+                # Second trace (actual data)
+                if i % 2 == 1:  
+                    if "line" not in trace:
+                        trace["line"] = {}
+                    trace["line"]["color"] = self.line_color
+                    trace["line"]["width"] = self.line_width
+                    trace["line"]["dash"] = self.line_style
+                    if "marker" in trace:
+                        trace["marker"]["color"] = self.line_color
 
-        # Ensure the graph fully redraws
-        figure["layout"]["uirevision"] = None
+            # Ensure the graph fully redraws
+            figure["layout"]["uirevision"] = None
 
-        return dcc.Graph(className='graph', id={'type': 'graph','index': self.index}, style=graph_style, 
-                             figure=getattr(figs, self.chain)(self.quantity, self.dataset, self.colorbar, self.wigner, self.proton, self.neutron, \
-                                                              self.nucleon, self.range, self.uncertainty, self.even_even, include_bmc=getattr(self, "include_bmc", False)))
+            return dcc.Graph(
+                className='graph',
+                id={'type': 'graph','index': self.index},
+                style=graph_style,
+                figure=figure
+            )
