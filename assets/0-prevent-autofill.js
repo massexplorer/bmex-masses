@@ -22,10 +22,13 @@
     }
     
     // Wrap querySelectorAll to handle errors gracefully
-    function wrapQuerySelectorAll(originalFn, context) {
+    function wrapQuerySelectorAll(originalFn) {
         return function(selector) {
             try {
                 if (isProblematicSelector(selector)) {
+                    return emptyNodeList();
+                }
+                if (typeof originalFn !== 'function') {
                     return emptyNodeList();
                 }
                 return originalFn.call(this, selector);
@@ -33,7 +36,7 @@
                 if (e instanceof DOMException && e.name === 'SyntaxError') {
                     return emptyNodeList();
                 }
-                throw e;
+                return emptyNodeList();
             }
         };
     }
@@ -45,12 +48,15 @@
                 if (isProblematicSelector(selector)) {
                     return null;
                 }
+                if (typeof originalFn !== 'function') {
+                    return null;
+                }
                 return originalFn.call(this, selector);
             } catch (e) {
                 if (e instanceof DOMException && e.name === 'SyntaxError') {
                     return null;
                 }
-                throw e;
+                return null;
             }
         };
     }
